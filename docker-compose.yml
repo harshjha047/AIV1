@@ -1,0 +1,31 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${LOCAL_MONGO_ROOT_USER:?set LOCAL_MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${LOCAL_MONGO_ROOT_PASSWORD:?set LOCAL_MONGO_ROOT_PASSWORD}
+    volumes:
+      - mongo-data:/data/db
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:6380:6380'
+    command:
+      - redis-server
+      - --port
+      - '6380'
+      - --requirepass
+      - ${AI_REDIS_PASSWORD:?set AI_REDIS_PASSWORD}
+      - --maxmemory-policy
+      - noeviction
+      - --appendonly
+      - 'yes'
+    volumes:
+      - redis-data:/data
+volumes:
+  mongo-data:
+  redis-data:

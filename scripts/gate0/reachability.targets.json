@@ -1,0 +1,6 @@
+[
+  { "source": "CRM", "host": "REPLACE_HOST", "port": 27017, "tls": false },
+  { "source": "BahiKhata", "host": "REPLACE_HOST", "port": 27017, "tls": false },
+  { "source": "Invoicing", "host": "REPLACE_HOST", "port": 27017, "tls": false },
+  { "source": "Samadhan", "host": "REPLACE_HOST", "port": 5432, "tls": false }
+]

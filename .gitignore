@@ -1,0 +1,5 @@
+node_modules
+ops/samples
+ops/live
+.env
+.env.*

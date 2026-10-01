@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-10-01T11:34:53.195Z",
+  "workspaces": [
+    {
+      "workspace": "fab5-ai",
+      "missing": [],
+      "unused": [],
+      "invalidFiles": [],
+      "ok": true
+    },
+    {
+      "workspace": "@fab5/ai-service",
+      "missing": [],
+      "unused": [],
+      "invalidFiles": [],
+      "ok": true
+    },
+    {
+      "workspace": "@fab5/ai-worker",
+      "missing": [],
+      "unused": [],
+      "invalidFiles": [],
+      "ok": true
+    },
+    {
+      "workspace": "@fab5/shared",
+      "missing": [],
+      "unused": [],
+      "invalidFiles": [],
+      "ok": true
+    },
+    {
+      "workspace": "@fab5/snapshot-db",
+      "missing": [],
+      "unused": [],
+      "invalidFiles": [],
+      "ok": true
+    },
+    {
+      "workspace": "@fab5/source-gate",
+      "missing": [],
+      "unused": [],
+      "invalidFiles": [],
+      "ok": true
+    }
+  ]
+}

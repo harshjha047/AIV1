@@ -1,0 +1,31 @@
+{
+  "name": "fab5-ai",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "views:generate": "node scripts/views-generate.js",
+    "views:check": "node scripts/views-generate.js --check",
+    "practice:restore": "bash scripts/practice-restore.sh",
+    "practice:record": "node packages/source-gate/bin/practice-record.js",
+    "practice:verify": "node packages/source-gate/bin/practice-verify.js",
+    "seed:auth": "node scripts/seed-auth.js",
+    "start:ai": "node apps/ai-service/src/main.js",
+    "bench:models": "node scripts/bench-models.js",
+    "source:add": "node scripts/source-add.js",
+    "lint": "eslint .",
+    "ci": "npm run lint && npm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "globals": "^17.13.0",
+    "prettier": "^3.3.0",
+    "vitest": "^2.1.0"
+  }
+}

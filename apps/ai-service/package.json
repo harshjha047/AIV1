@@ -1,0 +1,19 @@
+{
+  "name": "@fab5/ai-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*.js"
+  },
+  "dependencies": {
+    "@fab5/shared": "*",
+    "express": "^5.1.0",
+    "ioredis": "^5.4.1",
+    "@fab5/source-gate": "*"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

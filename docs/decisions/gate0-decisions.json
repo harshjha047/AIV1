@@ -1,0 +1,61 @@
+{
+  "secrets": {
+    "rotated": [
+      { "name": "bharatradius_database_credentials", "rotatedAt": null, "oldRevokedAt": null },
+      { "name": "bharatradius_jwt_secret", "rotatedAt": null, "oldRevokedAt": null },
+      { "name": "bharatradius_email_password", "rotatedAt": null, "oldRevokedAt": null }
+    ],
+    "additionalFound": [],
+    "historyPurged": [],
+    "collaboratorsReviewedAt": null
+  },
+  "resend": {
+    "plan": null,
+    "observedRetentionDays": null,
+    "exportedAt": null,
+    "decision": null,
+    "mailingServiceRepo": null
+  },
+  "kpi": {
+    "salesAttribution": "createdBy",
+    "netLostMbps": false,
+    "supportAttribution": "resolver",
+    "repeatIssueWindowDays": 30,
+    "collectionsTargets": "none",
+    "slaThresholds": null,
+    "profileAssignments": [],
+    "onDisableDefault": "hide",
+    "acceptedDefaults": null,
+    "signedOffBy": null,
+    "signedOffAt": null
+  },
+  "hosting": {
+    "topology": null,
+    "redis": { "host": null, "managed": null, "noevictionPossible": null },
+    "services": [
+      { "name": "FAB5-CRM", "api": null, "db": null, "nodeVersion": null, "mongoVersion": null },
+      { "name": "Invoicing", "api": null, "db": null, "nodeVersion": null, "mongoVersion": null },
+      { "name": "tool-BahiKhataa", "api": null, "db": null, "nodeVersion": null, "mongoVersion": null },
+      { "name": "tool-samadhan", "api": null, "db": null, "postgresVersion": null, "nodeVersion": null }
+    ],
+    "reachability": [
+      { "source": "CRM", "reachable": null, "tls": null, "allowListNeeded": null },
+      { "source": "BahiKhata", "reachable": null, "tls": null, "allowListNeeded": null },
+      { "source": "Invoicing", "reachable": null, "tls": null, "allowListNeeded": null },
+      { "source": "Samadhan", "reachable": null, "tls": null, "allowListNeeded": null }
+    ],
+    "openPorts": []
+  },
+  "access": {
+    "mailingServiceRepo": null,
+    "accountingApplicationInScope": null,
+    "bharatRadiusInScope": null,
+    "practiceData": { "crm": null, "bahikhata": null },
+    "localMongoAuthEnabled": null,
+    "productionDbAdmin": null
+  },
+  "scopeDecisions": {
+    "authoritativeOutstanding": "bahikhata",
+    "managerRoleMapping": null
+  }
+}

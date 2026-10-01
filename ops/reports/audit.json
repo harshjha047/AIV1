@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-10-01T11:34:56.582Z",
+  "failAt": "high",
+  "counts": {
+    "info": 0,
+    "low": 0,
+    "moderate": 0,
+    "high": 0,
+    "critical": 0
+  },
+  "total": 0,
+  "failing": [],
+  "allowed": [],
+  "expiredAllowlist": [],
+  "ok": true
+}

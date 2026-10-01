@@ -1,0 +1,4 @@
+[
+  { "name": "ai-hub client chunks", "dir": "apps/ai-hub/.next/static/chunks", "maxGzipKb": 250 },
+  { "name": "ai-panel bundle", "dir": "packages/ai-panel/dist", "maxGzipKb": 60 }
+]

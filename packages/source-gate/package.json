@@ -1,0 +1,14 @@
+{
+  "name": "@fab5/source-gate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.js", "./*": "./src/*.js" },
+  "dependencies": {
+    "@fab5/shared": "*",
+    "ioredis": "^5.4.1",
+    "luxon": "^3.5.0",
+    "mongodb": "^6.9.0",
+    "pg": "^8.13.0"
+  }
+}

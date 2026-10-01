@@ -1,0 +1,11 @@
+{
+  "owner": "REPLACE_GITHUB_OWNER",
+  "repos": [
+    { "name": "FAB5-CRM", "path": "../FAB5-CRM" },
+    { "name": "Invoicing", "path": "../Invoicing" },
+    { "name": "tool-BahiKhataa", "path": "../tool-BahiKhataa" },
+    { "name": "tool-samadhan", "path": "../tool-samadhan" },
+    { "name": "BharatRadius", "path": "../BharatRadius" }
+  ],
+  "requiredSources": ["CRM", "BahiKhata", "Invoicing", "Samadhan"]
+}

@@ -1,0 +1,5 @@
+REPLACE_OLD_DB_URI==>***REMOVED***
+REPLACE_OLD_JWT_SECRET==>***REMOVED***
+REPLACE_OLD_EMAIL_PASSWORD==>***REMOVED***
+regex:mongodb(\+srv)?://[^\s'"]+:[^\s'"@]+@==>mongodb://***REMOVED***@
+regex:(?i)(jwt_secret|email_pass(word)?|smtp_pass(word)?)\s*[=:]\s*['"]?[^\s'"]+==>\1=***REMOVED***

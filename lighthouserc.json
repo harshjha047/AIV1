@@ -1,0 +1,24 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm run start --workspace @fab5/ai-hub",
+      "startServerReadyPattern": "Ready",
+      "url": ["http://localhost:4101/"],
+      "numberOfRuns": 3,
+      "settings": { "preset": "desktop" }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["warn", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 0.9 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 200 }],
+        "render-blocking-resources": ["warn", { "maxLength": 0 }],
+        "unused-javascript": ["warn", { "maxLength": 0 }]
+      }
+    },
+    "upload": { "target": "filesystem", "outputDir": "ops/reports/lighthouse" }
+  }
+}

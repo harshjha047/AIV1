@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-01T11:34:57.543Z",
+  "results": [
+    {
+      "name": "ai-hub client chunks",
+      "skipped": true,
+      "ok": true
+    },
+    {
+      "name": "ai-panel bundle",
+      "skipped": true,
+      "ok": true
+    }
+  ]
+}

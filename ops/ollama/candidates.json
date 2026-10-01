@@ -1,0 +1,14 @@
+{
+  "small": [
+    { "tag": "qwen3:4b", "think": false },
+    { "tag": "gemma3:4b" },
+    { "tag": "phi4-mini" },
+    { "tag": "llama3.2:3b" }
+  ],
+  "large": [
+    { "tag": "qwen3:8b", "think": false },
+    { "tag": "llama3.1:8b" },
+    { "tag": "gemma3:12b" }
+  ],
+  "embed": [{ "tag": "nomic-embed-text" }]
+}
