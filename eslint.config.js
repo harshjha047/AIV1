@@ -8,7 +8,7 @@ export default [
   js.configs.recommended,
   { rules: { 'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrors: 'none' }] } },
   {
-    files: ['**/*.js'],
+    files: ['**/*.{js,mjs}'],
     languageOptions: { ecmaVersion: 2024, sourceType: 'module', globals: { ...globals.node } }
   },
   ...oneDoor,

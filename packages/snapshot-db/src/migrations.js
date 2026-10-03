@@ -1,4 +1,4 @@
-import { performance } from 'node:perf_hooks';
+import { createRealClock } from '@fab5/shared/clock';
 import { DUPLICATE_KEY, MIGRATIONS_COLLECTION } from './constants.js';
 
 export class MigrationStateError extends Error {
@@ -55,7 +55,7 @@ export const getMigrationStatus = async (db, migrations) => {
 export const runMigrations = async (
   db,
   migrations,
-  { now = () => new Date(), context = {} } = {},
+  { clock = createRealClock(), now = () => clock.now(), monotonic = () => clock.monotonic(), context = {} } = {},
 ) => {
   const status = await getMigrationStatus(db, migrations);
   const pending = migrations.filter((migration) => status.pending.includes(migration.id));
@@ -63,9 +63,9 @@ export const runMigrations = async (
 
   for (const migration of pending) {
     const startedAt = now();
-    const timer = performance.now();
+    const timer = monotonic();
     await migration.up(db, { ...context, now: startedAt });
-    const durationMs = Math.round(performance.now() - timer);
+    const durationMs = Math.round(monotonic() - timer);
     try {
       await db.collection(MIGRATIONS_COLLECTION).insertOne({
         _id: migration.id,

@@ -4,7 +4,17 @@
   "private": true,
   "type": "module",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./*": "./src/*.js",
+    "./inventory": "./src/inventory/index.js"
+  },
   "dependencies": {
-    "@fab5/shared": "*"
+    "@fab5/shared": "*",
+    "@fab5/source-gate": "*",
+    "@fab5/sources": "*"
+  },
+  "devDependencies": {
+    "luxon": "^3.5.0"
   }
 }

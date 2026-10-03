@@ -1,3 +1,5 @@
+import { createRealClock } from '@fab5/shared/clock';
+
 const defaults = (now, mode) => [
   { _id: 'snapshot', currentVersion: null, promotedAt: null, schemaVersion: 0, perSource: {} },
   { _id: 'embedding', activeModel: null, dim: 768, activatedAt: null },
@@ -13,7 +15,7 @@ const defaults = (now, mode) => [
   },
 ];
 
-export const seedMeta = async (db, { now = new Date(), mode = 'practice' } = {}) => {
+export const seedMeta = async (db, { now = createRealClock().now(), mode = 'practice' } = {}) => {
   const seeded = [];
   for (const document of defaults(now, mode)) {
     const { _id, ...fields } = document;
