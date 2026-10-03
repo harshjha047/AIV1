@@ -1,0 +1,3374 @@
+diff --git a/package.json b/package.json
+index e6dd48b..f91ad43 100644
+--- a/package.json
++++ b/package.json
+@@ -19,7 +19,9 @@
+     "bench:models": "node scripts/bench-models.js",
+     "source:add": "node scripts/source-add.js",
+     "lint": "eslint .",
+-    "ci": "npm run lint && npm test"
++    "ci": "npm run lint && npm test",
++    "legacy:export": "node scripts/legacy-export.js",
++    "history:check": "node scripts/history-check.js"
+   },
+   "devDependencies": {
+     "@eslint/js": "^9.39.5",
+diff --git a/packages/shared/contracts/bahikhata.js b/packages/shared/contracts/bahikhata.js
+new file mode 100644
+index 0000000..9a39f37
+--- /dev/null
++++ b/packages/shared/contracts/bahikhata.js
+@@ -0,0 +1,45 @@
++import { bool, date, email, int, ndate, nstr, object, str } from './builders.js';
++
++export const bahikhataContracts = {
++  'bahikhata.employees': object({
++    _id: str,
++    sourceUserId: str,
++    email,
++    name: str,
++    sourceRole: nstr,
++    active: bool,
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  }),
++  'bahikhata.customers': object({
++    _id: str,
++    sourceCustomerId: str,
++    crmId: nstr,
++    name: str,
++    collectionsManagerEmployeeId: nstr,
++    managerSourceId: nstr,
++    availableAdvancePaise: int,
++    active: bool,
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  }),
++  'bahikhata.ledger_entries': object({
++    _id: str,
++    customerId: nstr,
++    customerSourceId: nstr,
++    date: date,
++    invoiceNo: nstr,
++    debitPaise: int,
++    creditPaise: int,
++    advancePaise: int,
++    amountPaidPaise: int,
++    balanceDuePaise: int,
++    status: nstr,
++    paymentStatus: nstr,
++    addedByEmployeeId: nstr,
++    addedBySourceId: nstr,
++    descriptionSnippet: nstr,
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  })
++};
+diff --git a/packages/shared/contracts/builders.js b/packages/shared/contracts/builders.js
+new file mode 100644
+index 0000000..5e85ac8
+--- /dev/null
++++ b/packages/shared/contracts/builders.js
+@@ -0,0 +1,25 @@
++export const str = Object.freeze({ type: 'string', minLength: 1 });
++export const nstr = Object.freeze({ type: ['string', 'null'] });
++export const int = Object.freeze({ type: 'integer' });
++export const nint = Object.freeze({ type: ['integer', 'null'] });
++export const num = Object.freeze({ type: 'number' });
++export const nnum = Object.freeze({ type: ['number', 'null'] });
++export const bool = Object.freeze({ type: 'boolean' });
++export const date = Object.freeze({ isDate: true });
++export const ndate = Object.freeze({ anyOf: [{ isDate: true }, { type: 'null' }] });
++export const email = Object.freeze({ type: 'string', pattern: '^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$' });
++
++export const object = (properties, { optional = [] } = {}) => {
++  const skipped = new Set(optional);
++  return {
++    type: 'object',
++    properties,
++    required: Object.keys(properties).filter((key) => !skipped.has(key)),
++    additionalProperties: false
++  };
++};
++
++export const nobject = (properties) => {
++  const inner = object(properties);
++  return { anyOf: [inner, { type: 'null' }] };
++};
+diff --git a/packages/shared/contracts/crm.js b/packages/shared/contracts/crm.js
+new file mode 100644
+index 0000000..01a3a89
+--- /dev/null
++++ b/packages/shared/contracts/crm.js
+@@ -0,0 +1,107 @@
++import {
++  bool,
++  date,
++  email,
++  nint,
++  nnum,
++  nobject,
++  nstr,
++  ndate,
++  num,
++  object,
++  str
++} from './builders.js';
++
++export const crmContracts = {
++  'crm.employees': object({
++    _id: str,
++    sourceUserId: str,
++    email,
++    name: str,
++    sourceRole: nstr,
++    active: bool,
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  }),
++  'crm.customers': object({
++    _id: str,
++    sourceCustomerId: str,
++    name: str,
++    customerType: nstr,
++    state: nstr,
++    managedByEmployeeId: nstr,
++    managedBySourceId: nstr,
++    active: bool,
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  }),
++  'crm.connections': object({
++    _id: str,
++    opportunityId: nstr,
++    customerId: nstr,
++    customerSourceId: nstr,
++    createdByEmployeeId: nstr,
++    approvedByEmployeeId: nstr,
++    activatedByEmployeeId: nstr,
++    serviceType: nstr,
++    bandwidthRaw: nstr,
++    bandwidthMbps: num,
++    bandwidthParsed: bool,
++    telcoProvider: nstr,
++    status: str,
++    mrcPaise: nint,
++    otcPaise: nint,
++    providerMrcPaise: nint,
++    marginMrcPaise: nint,
++    ipCount: nint,
++    ipCostPaise: nint,
++    aEndBtsId: nstr,
++    bEndBtsId: nstr,
++    acceptanceDate: ndate,
++    remarksSnippet: nstr,
++    termination: nobject({ raiseDate: ndate, finalDate: ndate, reasonSnippet: nstr }),
++    rejection: nobject({ rejectedAt: ndate, reasonSnippet: nstr }),
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  }),
++  'crm.connection_events': object({
++    _id: str,
++    connectionId: str,
++    action: str,
++    date: ndate,
++    performedByEmployeeId: nstr,
++    bandwidthRaw: nstr,
++    bandwidthMbps: nnum,
++    mrcPaise: nint,
++    noteSnippet: nstr,
++    parentUpdatedAt: date
++  }),
++  'crm.service_requests': object({
++    _id: str,
++    customerId: nstr,
++    customerSourceId: nstr,
++    requestType: nstr,
++    status: nstr,
++    serviceType: nstr,
++    bandwidthCurrentMbps: nnum,
++    bandwidthRequestedMbps: nnum,
++    mrcPaise: nint,
++    createdByEmployeeId: nstr,
++    approvedByEmployeeId: nstr,
++    disconnectionReasonSnippet: nstr,
++    raiseDate: ndate,
++    finalDisconnectionDate: ndate,
++    srcCreatedAt: ndate,
++    srcUpdatedAt: date
++  }),
++  'crm.sales_targets': object({
++    _id: str,
++    employeeId: nstr,
++    employeeSourceId: str,
++    monthKey: { type: 'string', pattern: '^\\d{4}-(0[1-9]|1[0-2])$' },
++    monthStart: date,
++    targetMbps: num,
++    setByEmployeeId: nstr,
++    srcUpdatedAt: date
++  })
++};
+diff --git a/packages/shared/contracts/index.js b/packages/shared/contracts/index.js
+new file mode 100644
+index 0000000..d68d646
+--- /dev/null
++++ b/packages/shared/contracts/index.js
+@@ -0,0 +1,38 @@
++import Ajv from 'ajv';
++import { bahikhataContracts } from './bahikhata.js';
++import { crmContracts } from './crm.js';
++
++export const CONTRACTS = Object.freeze({ ...crmContracts, ...bahikhataContracts });
++
++const ajv = new Ajv({ allErrors: false, strict: true });
++ajv.addKeyword({
++  keyword: 'isDate',
++  schemaType: 'boolean',
++  validate: (flag, data) => !flag || (data instanceof Date && !Number.isNaN(data.getTime()))
++});
++
++const compiled = new Map();
++
++const compile = (id) => {
++  if (!compiled.has(id)) {
++    const schema = CONTRACTS[id];
++    if (!schema) throw new Error(`Unknown contract ${id}`);
++    compiled.set(id, ajv.compile(schema));
++  }
++  return compiled.get(id);
++};
++
++export const listContracts = () => Object.keys(CONTRACTS);
++
++export const validateContract = (id, value) => {
++  const validate = compile(id);
++  if (validate(value)) return { ok: true, reason: null };
++  const [error] = validate.errors ?? [];
++  const path = error?.instancePath ? error.instancePath.slice(1).replace(/\//g, '.') : '(root)';
++  const detail = error?.params?.additionalProperty
++    ? `unexpected property ${error.params.additionalProperty}`
++    : error?.params?.missingProperty
++      ? `missing property ${error.params.missingProperty}`
++      : (error?.message ?? 'invalid');
++  return { ok: false, reason: `${path}: ${detail}` };
++};
+diff --git a/packages/shared/package.json b/packages/shared/package.json
+index 584c0fd..b0a8edb 100644
+--- a/packages/shared/package.json
++++ b/packages/shared/package.json
+@@ -3,6 +3,14 @@
+   "version": "0.1.0",
+   "private": true,
+   "type": "module",
+-  "exports": { ".": "./src/index.js", "./*": "./src/*.js", "./pii": "./src/pii/index.js" },
+-  "dependencies": { "luxon": "^3.5.0" }
++  "exports": {
++    ".": "./src/index.js",
++    "./contracts": "./contracts/index.js",
++    "./pii": "./src/pii/index.js",
++    "./*": "./src/*.js"
++  },
++  "dependencies": {
++    "ajv": "^8.20.0",
++    "luxon": "^3.5.0"
++  }
+ }
+diff --git a/packages/shared/test/contracts.test.js b/packages/shared/test/contracts.test.js
+new file mode 100644
+index 0000000..8d4a3c4
+--- /dev/null
++++ b/packages/shared/test/contracts.test.js
+@@ -0,0 +1,154 @@
++import { describe, expect, it } from 'vitest';
++import { CONTRACTS, listContracts, validateContract } from '../contracts/index.js';
++import { matchDeniedKey } from '../src/pii/denyList.js';
++
++const connection = () => ({
++  _id: 'crm:1',
++  opportunityId: 'OPP-1',
++  customerId: null,
++  customerSourceId: 'c1',
++  createdByEmployeeId: null,
++  approvedByEmployeeId: null,
++  activatedByEmployeeId: null,
++  serviceType: 'ILL',
++  bandwidthRaw: '100 Mbps',
++  bandwidthMbps: 100,
++  bandwidthParsed: true,
++  telcoProvider: null,
++  status: 'Active',
++  mrcPaise: 1000,
++  otcPaise: null,
++  providerMrcPaise: null,
++  marginMrcPaise: null,
++  ipCount: null,
++  ipCostPaise: null,
++  aEndBtsId: null,
++  bEndBtsId: null,
++  acceptanceDate: null,
++  remarksSnippet: null,
++  termination: null,
++  rejection: null,
++  srcCreatedAt: null,
++  srcUpdatedAt: new Date('2026-08-01T00:00:00.000Z')
++});
++
++describe('contracts', () => {
++  it('compiles every contract', () => {
++    expect(listContracts().length).toBeGreaterThanOrEqual(9);
++    for (const id of listContracts()) expect(() => validateContract(id, {})).not.toThrow();
++  });
++
++  it('rejects unknown contract ids', () => {
++    expect(() => validateContract('crm.nothing', {})).toThrow(/Unknown contract/);
++  });
++
++  it('never declares a deny-listed property', () => {
++    const walk = (node, path, hits) => {
++      if (!node || typeof node !== 'object') return;
++      for (const [key, child] of Object.entries(node.properties ?? {})) {
++        if (matchDeniedKey(key)) hits.push(`${path}.${key}`);
++        walk(child, `${path}.${key}`, hits);
++        for (const branch of child.anyOf ?? []) walk(branch, `${path}.${key}`, hits);
++      }
++    };
++    for (const [id, schema] of Object.entries(CONTRACTS)) {
++      const hits = [];
++      walk(schema, id, hits);
++      expect(hits, id).toEqual([]);
++      expect(schema.additionalProperties, id).toBe(false);
++    }
++  });
++
++  it('accepts a complete row', () => {
++    expect(validateContract('crm.connections', connection())).toEqual({ ok: true, reason: null });
++  });
++
++  it('names a missing property', () => {
++    const { mrcPaise, ...rest } = connection();
++    expect(mrcPaise).toBe(1000);
++    expect(validateContract('crm.connections', rest)).toEqual({
++      ok: false,
++      reason: '(root): missing property mrcPaise'
++    });
++  });
++
++  it('names an unexpected property', () => {
++    const result = validateContract('crm.connections', { ...connection(), password: 'x' });
++    expect(result).toEqual({ ok: false, reason: '(root): unexpected property password' });
++  });
++
++  it('treats undefined as missing', () => {
++    expect(validateContract('crm.connections', { ...connection(), status: undefined }).ok).toBe(
++      false
++    );
++  });
++
++  it('rejects a wrong type with its path and never echoes the value', () => {
++    const result = validateContract('crm.connections', { ...connection(), mrcPaise: '1000' });
++    expect(result.ok).toBe(false);
++    expect(result.reason).toContain('mrcPaise');
++    expect(result.reason).not.toContain('"1000"');
++  });
++
++  it('rejects fractional paise', () => {
++    expect(validateContract('crm.connections', { ...connection(), mrcPaise: 10.5 }).ok).toBe(false);
++  });
++
++  it('requires real Date objects', () => {
++    expect(
++      validateContract('crm.connections', { ...connection(), srcUpdatedAt: '2026-08-01' }).ok
++    ).toBe(false);
++    expect(
++      validateContract('crm.connections', { ...connection(), srcUpdatedAt: new Date('nope') }).ok
++    ).toBe(false);
++    expect(
++      validateContract('crm.connections', { ...connection(), srcCreatedAt: new Date('2026-08-01') })
++        .ok
++    ).toBe(true);
++  });
++
++  it('validates nested objects and forbids extra keys inside them', () => {
++    const ok = { raiseDate: null, finalDate: new Date('2026-08-01'), reasonSnippet: 'x' };
++    expect(validateContract('crm.connections', { ...connection(), termination: ok }).ok).toBe(true);
++    expect(
++      validateContract('crm.connections', { ...connection(), termination: { ...ok, extra: 1 } }).ok
++    ).toBe(false);
++    expect(
++      validateContract('crm.connections', { ...connection(), termination: { raiseDate: 'x' } }).ok
++    ).toBe(false);
++  });
++
++  it('constrains the sales target month key', () => {
++    const target = {
++      _id: 'crm:t',
++      employeeId: null,
++      employeeSourceId: 'e1',
++      monthKey: '2026-09',
++      monthStart: new Date('2026-08-31T18:30:00.000Z'),
++      targetMbps: 1500,
++      setByEmployeeId: null,
++      srcUpdatedAt: new Date('2026-08-01T00:00:00.000Z')
++    };
++    expect(validateContract('crm.sales_targets', target).ok).toBe(true);
++    expect(validateContract('crm.sales_targets', { ...target, monthKey: '2026-13' }).ok).toBe(
++      false
++    );
++    expect(validateContract('crm.sales_targets', { ...target, monthKey: 'Sept' }).ok).toBe(false);
++  });
++
++  it('requires a plausible employee email', () => {
++    const employee = {
++      _id: 'crm:u',
++      sourceUserId: 'u',
++      email: 'a@example.com',
++      name: 'A',
++      sourceRole: null,
++      active: true,
++      srcCreatedAt: null,
++      srcUpdatedAt: new Date('2026-08-01T00:00:00.000Z')
++    };
++    expect(validateContract('crm.employees', employee).ok).toBe(true);
++    expect(validateContract('crm.employees', { ...employee, email: 'nope' }).ok).toBe(false);
++    expect(validateContract('crm.employees', { ...employee, name: '' }).ok).toBe(false);
++  });
++});
+diff --git a/packages/source-gate/src/engines/mongoIds.js b/packages/source-gate/src/engines/mongoIds.js
+new file mode 100644
+index 0000000..cedfab9
+--- /dev/null
++++ b/packages/source-gate/src/engines/mongoIds.js
+@@ -0,0 +1,8 @@
++import { ObjectId } from 'mongodb';
++
++const HEX_OBJECT_ID = /^[0-9a-fA-F]{24}$/;
++
++export const toMongoId = (value) =>
++  typeof value === 'string' && HEX_OBJECT_ID.test(value) ? new ObjectId(value) : value;
++
++export const idToString = (value) => (value === null || value === undefined ? null : String(value));
+diff --git a/packages/source-gate/src/index.js b/packages/source-gate/src/index.js
+index 96109d4..5e2e72d 100644
+--- a/packages/source-gate/src/index.js
++++ b/packages/source-gate/src/index.js
+@@ -24,3 +24,4 @@ export * from './practice/record.js';
+ export * from './practice/verify.js';
+ export * from './activityRange.js';
+ export * from './credentials/cli.js';
++export * from './engines/mongoIds.js';
+diff --git a/packages/source-gate/test/mongoIds.test.js b/packages/source-gate/test/mongoIds.test.js
+new file mode 100644
+index 0000000..ea1df78
+--- /dev/null
++++ b/packages/source-gate/test/mongoIds.test.js
+@@ -0,0 +1,24 @@
++import { ObjectId } from 'mongodb';
++import { describe, expect, it } from 'vitest';
++import { idToString, toMongoId } from '../src/engines/mongoIds.js';
++
++describe('mongo id helpers', () => {
++  it('converts 24 character hex strings to ObjectId', () => {
++    const hex = '64f1a2b3c4d5e6f708192a3b';
++    const converted = toMongoId(hex);
++    expect(converted).toBeInstanceOf(ObjectId);
++    expect(idToString(converted)).toBe(hex);
++  });
++
++  it('leaves other values untouched', () => {
++    expect(toMongoId('legacy-7')).toBe('legacy-7');
++    expect(toMongoId(42)).toBe(42);
++    expect(toMongoId(null)).toBeNull();
++  });
++
++  it('stringifies ids and passes null through', () => {
++    expect(idToString(null)).toBeNull();
++    expect(idToString(undefined)).toBeNull();
++    expect(idToString(new ObjectId('64f1a2b3c4d5e6f708192a3b'))).toBe('64f1a2b3c4d5e6f708192a3b');
++  });
++});
+diff --git a/packages/sources/bahikhata/entities.js b/packages/sources/bahikhata/entities.js
+new file mode 100644
+index 0000000..fe34c1e
+--- /dev/null
++++ b/packages/sources/bahikhata/entities.js
+@@ -0,0 +1,90 @@
++import {
++  asBool,
++  asDate,
++  asPaise,
++  asText,
++  idOf,
++  normalizeEmail,
++  requireId,
++  requireText
++} from '../src/mapping.js';
++import { defineEntity } from '../src/spec.js';
++
++const SOURCE = 'bahikhata';
++const OBJECT_ID_CURSOR = { time: 'updatedAt', tie: '_id', tieType: 'objectId' };
++
++export const employees = defineEntity(SOURCE, {
++  entity: 'employees',
++  kind: 'identity',
++  view: 'ai_users_v',
++  cursor: OBJECT_ID_CURSOR,
++  contract: 'bahikhata.employees',
++  map: (doc) => {
++    const email = normalizeEmail(doc.email);
++    return {
++      _id: `bahikhata:${requireId(doc._id, '_id')}`,
++      sourceUserId: requireId(doc._id, '_id'),
++      email,
++      name: asText(doc.name) ?? email,
++      sourceRole: asText(doc.role),
++      active: true,
++      srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++      srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++    };
++  }
++});
++
++export const customers = defineEntity(SOURCE, {
++  entity: 'customers',
++  kind: 'identity',
++  view: 'ai_customers_v',
++  cursor: OBJECT_ID_CURSOR,
++  contract: 'bahikhata.customers',
++  map: (doc, ctx) => ({
++    _id: `bahikhata:${requireId(doc._id, '_id')}`,
++    sourceCustomerId: requireId(doc._id, '_id'),
++    crmId: idOf(doc.crmId),
++    name: requireText(doc.companyName, 'companyName'),
++    collectionsManagerEmployeeId: ctx.employeeId(SOURCE, idOf(doc.manager)),
++    managerSourceId: idOf(doc.manager),
++    availableAdvancePaise: asPaise(doc.availableAdvance, 'availableAdvance', { nullable: false }),
++    active: asBool(doc.isActive),
++    srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++    srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++  })
++});
++
++export const ledgerEntries = defineEntity(SOURCE, {
++  entity: 'ledger_entries',
++  kind: 'fact',
++  view: 'ai_ledger_v',
++  cursor: OBJECT_ID_CURSOR,
++  target: 'fact_ledger_entries',
++  contract: 'bahikhata.ledger_entries',
++  activityDate: 'date',
++  map: (doc, ctx) => ({
++    _id: `bahikhata:${requireId(doc._id, '_id')}`,
++    customerId: ctx.customerId(SOURCE, idOf(doc.customer)),
++    customerSourceId: idOf(doc.customer),
++    date: asDate(doc.date, 'date', { nullable: false }),
++    invoiceNo: asText(doc.invoiceNo),
++    debitPaise: asPaise(doc.debit, 'debit', { nullable: false }),
++    creditPaise: asPaise(doc.credit, 'credit', { nullable: false }),
++    advancePaise: asPaise(doc.advanceAmount, 'advanceAmount', { nullable: false }),
++    amountPaidPaise: asPaise(doc.amountPaid, 'amountPaid', { nullable: false }),
++    balanceDuePaise: asPaise(doc.balanceDue, 'balanceDue', { nullable: false }),
++    status: asText(doc.status),
++    paymentStatus: asText(doc.paymentStatus),
++    addedByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.addedBy)),
++    addedBySourceId: idOf(doc.addedBy),
++    descriptionSnippet: asText(doc.descriptionSnippet, 200),
++    srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++    srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++  })
++});
++
++export const bahikhataEntities = Object.freeze({
++  employees,
++  customers,
++  ledger_entries: ledgerEntries
++});
+diff --git a/packages/sources/bahikhata/legacy.js b/packages/sources/bahikhata/legacy.js
+new file mode 100644
+index 0000000..562e0ea
+--- /dev/null
++++ b/packages/sources/bahikhata/legacy.js
+@@ -0,0 +1,249 @@
++import vm from 'node:vm';
++import { IST } from '@fab5/shared/clock';
++import { toPaise } from '@fab5/shared/money';
++import { DateTime } from 'luxon';
++import { SourceReaderError } from '../src/errors.js';
++
++export const LEGACY_SOURCE = 'bahikhata_legacy_array';
++
++const MONTH_FIELD_CANDIDATES = ['month', 'monthKey', 'period', 'date', 'label', 'name'];
++const MONTH_FORMATS = [
++  'yyyy-MM',
++  'yyyy-M',
++  'yyyy-MM-dd',
++  'yyyy/MM',
++  'yyyy/MM/dd',
++  'MMM yyyy',
++  'MMMM yyyy',
++  'MMM-yyyy',
++  'MMMM-yyyy',
++  'MMM-yy',
++  'MMM yy',
++  'MMM, yyyy',
++  'MMMM, yyyy'
++];
++const DEFAULT_IGNORED_KEYS = ['total', 'grandtotal', 'sum'];
++const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
++const OPENERS = { '[': ']', '{': '}', '(': ')' };
++const CLOSERS = new Set([']', '}', ')']);
++
++const fail = (message, code, details) => {
++  throw new SourceReaderError(message, code, details);
++};
++
++function findClosing(text, start) {
++  const stack = [];
++  let quote = null;
++  for (let index = start; index < text.length; index += 1) {
++    const char = text[index];
++    const next = text[index + 1];
++    if (quote) {
++      if (char === '\\') index += 1;
++      else if (char === quote) quote = null;
++      continue;
++    }
++    if (char === '/' && next === '/') {
++      const end = text.indexOf('\n', index);
++      index = end === -1 ? text.length : end;
++      continue;
++    }
++    if (char === '/' && next === '*') {
++      const end = text.indexOf('*/', index + 2);
++      if (end === -1) fail('Unterminated block comment', 'LEGACY_LITERAL_UNTERMINATED', {});
++      index = end + 1;
++      continue;
++    }
++    if (char === "'" || char === '"' || char === '`') {
++      quote = char;
++      continue;
++    }
++    if (OPENERS[char]) {
++      stack.push(OPENERS[char]);
++      continue;
++    }
++    if (CLOSERS.has(char)) {
++      if (stack.pop() !== char) fail('Unbalanced brackets', 'LEGACY_LITERAL_UNBALANCED', {});
++      if (stack.length === 0) return index;
++    }
++  }
++  return fail('Unterminated literal', 'LEGACY_LITERAL_UNTERMINATED', {});
++}
++
++export function extractLiteral(sourceText, name) {
++  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
++  const declaration = new RegExp(`(?:^|[^\\w$])${escaped}\\s*(?::[^=;]+)?=\\s*`, 'm');
++  const match = declaration.exec(sourceText);
++  if (!match) fail(`${name} not found in the source file`, 'LEGACY_NAME_NOT_FOUND', { name });
++  let start = match.index + match[0].length;
++  const wrapper = /^Object\.freeze\(\s*/.exec(sourceText.slice(start));
++  if (wrapper) start += wrapper[0].length;
++  if (sourceText[start] !== '[' && sourceText[start] !== '{') {
++    fail(`${name} is not an array or object literal`, 'LEGACY_LITERAL_NOT_STATIC', { name });
++  }
++  const end = findClosing(sourceText, start);
++  const literal = sourceText.slice(start, end + 1);
++  try {
++    const value = vm.runInNewContext(`(${literal})`, Object.create(null), { timeout: 1000 });
++    return JSON.parse(JSON.stringify(value));
++  } catch (error) {
++    return fail(`${name} is not a static literal`, 'LEGACY_LITERAL_NOT_STATIC', {
++      name,
++      cause: error.message
++    });
++  }
++}
++
++export function parseMonthLabel(value) {
++  let parsed = null;
++  if (value instanceof Date) parsed = DateTime.fromJSDate(value, { zone: IST });
++  else {
++    const text = String(value ?? '').trim();
++    for (const format of MONTH_FORMATS) {
++      const attempt = DateTime.fromFormat(text, format, { zone: IST, locale: 'en' });
++      if (attempt.isValid) {
++        parsed = attempt;
++        break;
++      }
++    }
++    if (!parsed) {
++      const iso = DateTime.fromISO(text, { zone: IST });
++      if (iso.isValid) parsed = iso;
++    }
++  }
++  if (!parsed || !parsed.isValid) return null;
++  return {
++    monthKey: parsed.toFormat('yyyy-MM'),
++    monthStart: parsed.startOf('month').toUTC().toJSDate()
++  };
++}
++
++function normalizeKeyMap(keyToEmail) {
++  const entries = Array.isArray(keyToEmail)
++    ? keyToEmail.map((item) => (Array.isArray(item) ? item : [item.key, item.email]))
++    : Object.entries(keyToEmail ?? {});
++  const table = new Map();
++  for (const [key, address] of entries) {
++    const email = String(address ?? '')
++      .trim()
++      .toLowerCase();
++    if (!EMAIL.test(email))
++      fail(`Invalid email for legacy key ${key}`, 'LEGACY_EMAIL_INVALID', { key });
++    table.set(String(key).trim().toLowerCase(), email);
++  }
++  return table;
++}
++
++const isAmount = (value) =>
++  typeof value === 'number' ||
++  (typeof value === 'string' && value.trim() !== '' && toPaise(value) !== null);
++
++function detectMonthField(row) {
++  const found = MONTH_FIELD_CANDIDATES.find((candidate) => row && candidate in row);
++  if (!found)
++    fail('Cannot detect the month field; pass monthField', 'LEGACY_MONTH_FIELD_UNKNOWN', {});
++  return found;
++}
++
++function paiseOf(value, unit, index, key) {
++  const paise =
++    unit === 'paise'
++      ? Number.isFinite(Number(value))
++        ? Math.round(Number(value))
++        : null
++      : toPaise(value);
++  if (paise === null)
++    fail(`Invalid amount at row ${index} for ${key}`, 'LEGACY_AMOUNT_INVALID', { index, key });
++  return paise;
++}
++
++export function buildLegacyRows({
++  rows,
++  keyToEmail,
++  monthField = null,
++  keyField = null,
++  amountField = null,
++  unit = 'rupees',
++  ignoreKeys = DEFAULT_IGNORED_KEYS
++}) {
++  if (!Array.isArray(rows)) fail('Legacy array must be an array', 'LEGACY_ARRAY_INVALID', {});
++  if (unit !== 'rupees' && unit !== 'paise')
++    fail('unit must be rupees or paise', 'LEGACY_UNIT_INVALID', { unit });
++  const emailByKey = normalizeKeyMap(keyToEmail);
++  const ignored = new Set(ignoreKeys.map((key) => key.toLowerCase()));
++  const long = Boolean(keyField && amountField);
++  const monthName = monthField ?? detectMonthField(rows[0]);
++
++  const merged = new Map();
++  const unmapped = {};
++  let sourceTotalPaise = 0;
++  let unmappedTotalPaise = 0;
++  let entryCount = 0;
++
++  rows.forEach((row, index) => {
++    const month = parseMonthLabel(row?.[monthName]);
++    if (!month) fail(`Unreadable month at row ${index}`, 'LEGACY_MONTH_INVALID', { index });
++    const pairs = long
++      ? [[row[keyField], row[amountField]]]
++      : Object.entries(row).filter(([key, value]) => key !== monthName && isAmount(value));
++    for (const [rawKey, amount] of pairs) {
++      const key = String(rawKey ?? '').trim();
++      if (key === '' || ignored.has(key.toLowerCase())) continue;
++      const paise = paiseOf(amount, unit, index, key);
++      entryCount += 1;
++      sourceTotalPaise += paise;
++      const email = emailByKey.get(key.toLowerCase());
++      if (!email) {
++        const bucket = unmapped[key] ?? { rows: 0, totalPaise: 0 };
++        bucket.rows += 1;
++        bucket.totalPaise += paise;
++        unmapped[key] = bucket;
++        unmappedTotalPaise += paise;
++        continue;
++      }
++      const id = `${email}|${month.monthKey}`;
++      const existing = merged.get(id);
++      if (existing) {
++        existing.collectedPaise += paise;
++        if (!existing.legacyKeys.includes(key)) existing.legacyKeys.push(key);
++      } else {
++        merged.set(id, {
++          email,
++          legacyKeys: [key],
++          monthKey: month.monthKey,
++          monthStart: month.monthStart,
++          collectedPaise: paise,
++          source: LEGACY_SOURCE
++        });
++      }
++    }
++  });
++
++  const exported = [...merged.values()].sort(
++    (a, b) => a.monthKey.localeCompare(b.monthKey) || a.email.localeCompare(b.email)
++  );
++  const exportedTotalPaise = exported.reduce((sum, row) => sum + row.collectedPaise, 0);
++  return {
++    monthField: monthName,
++    rows: exported,
++    unmapped,
++    totals: { sourceTotalPaise, exportedTotalPaise, unmappedTotalPaise },
++    counts: {
++      sourceRows: rows.length,
++      entries: entryCount,
++      exportedRows: exported.length,
++      employees: new Set(exported.map((row) => row.email)).size,
++      months: new Set(exported.map((row) => row.monthKey)).size
++    }
++  };
++}
++
++export function readLegacyExport({
++  text,
++  arrayName = 'RAW_HISTORICAL_GROWTH',
++  mapName = 'LEGACY_KEY_TO_EMAIL',
++  ...options
++}) {
++  const rows = extractLiteral(text, arrayName);
++  const keyToEmail = extractLiteral(text, mapName);
++  return buildLegacyRows({ rows, keyToEmail, ...options });
++}
+diff --git a/packages/sources/crm/entities.js b/packages/sources/crm/entities.js
+new file mode 100644
+index 0000000..8f579fe
+--- /dev/null
++++ b/packages/sources/crm/entities.js
+@@ -0,0 +1,208 @@
++import {
++  allNull,
++  asBool,
++  asDate,
++  asInt,
++  asNumber,
++  asPaise,
++  asText,
++  bandwidthOf,
++  idOf,
++  monthKeyOf,
++  normalizeEmail,
++  requireId,
++  requireText,
++  subtractPaise
++} from '../src/mapping.js';
++import { defineEntity } from '../src/spec.js';
++
++const SOURCE = 'crm';
++const OBJECT_ID_CURSOR = { time: 'updatedAt', tie: '_id', tieType: 'objectId' };
++
++export const employees = defineEntity(SOURCE, {
++  entity: 'employees',
++  kind: 'identity',
++  view: 'ai_users_v',
++  cursor: OBJECT_ID_CURSOR,
++  contract: 'crm.employees',
++  map: (doc) => {
++    const email = normalizeEmail(doc.email);
++    return {
++      _id: `crm:${requireId(doc._id, '_id')}`,
++      sourceUserId: requireId(doc._id, '_id'),
++      email,
++      name: asText(doc.name) ?? email,
++      sourceRole: asText(doc.role),
++      active: asBool(doc.isActive),
++      srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++      srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++    };
++  }
++});
++
++export const customers = defineEntity(SOURCE, {
++  entity: 'customers',
++  kind: 'identity',
++  view: 'ai_customers_v',
++  cursor: OBJECT_ID_CURSOR,
++  contract: 'crm.customers',
++  map: (doc, ctx) => ({
++    _id: `crm:${requireId(doc._id, '_id')}`,
++    sourceCustomerId: requireId(doc._id, '_id'),
++    name: requireText(doc.name, 'name'),
++    customerType: asText(doc.customerType),
++    state: asText(doc.state),
++    managedByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.managedBy)),
++    managedBySourceId: idOf(doc.managedBy),
++    active: asBool(doc.isActive),
++    srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++    srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++  })
++});
++
++export const connections = defineEntity(SOURCE, {
++  entity: 'connections',
++  kind: 'fact',
++  view: 'ai_connections_v',
++  cursor: OBJECT_ID_CURSOR,
++  target: 'fact_connections',
++  contract: 'crm.connections',
++  activityDate: 'srcCreatedAt',
++  map: (doc, ctx) => {
++    const bandwidth = bandwidthOf(doc.bandwidth);
++    const mrcPaise = asPaise(doc.commercials?.mrc, 'commercials.mrc');
++    const providerMrcPaise = asPaise(doc.providerCost?.mrc, 'providerCost.mrc');
++    const termination = doc.termination
++      ? {
++          raiseDate: asDate(doc.termination.raiseDate, 'termination.raiseDate'),
++          finalDate: asDate(doc.termination.finalDate, 'termination.finalDate'),
++          reasonSnippet: asText(doc.termination.reasonSnippet, 300)
++        }
++      : null;
++    const rejection = doc.rejection
++      ? {
++          rejectedAt: asDate(doc.rejection.rejectedAt, 'rejection.rejectedAt'),
++          reasonSnippet: asText(doc.rejection.reasonSnippet, 300)
++        }
++      : null;
++    return {
++      _id: `crm:${requireId(doc._id, '_id')}`,
++      opportunityId: asText(doc.opportunityId),
++      customerId: ctx.customerId(SOURCE, idOf(doc.customer)),
++      customerSourceId: idOf(doc.customer),
++      createdByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.createdBy)),
++      approvedByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.approvedBy)),
++      activatedByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.activatedBy)),
++      serviceType: asText(doc.serviceType),
++      bandwidthRaw: bandwidth.raw,
++      bandwidthMbps: bandwidth.mbps,
++      bandwidthParsed: bandwidth.parsed,
++      telcoProvider: asText(doc.technicalDetails?.telcoProvider),
++      status: requireText(doc.status, 'status'),
++      mrcPaise,
++      otcPaise: asPaise(doc.commercials?.otc, 'commercials.otc'),
++      providerMrcPaise,
++      marginMrcPaise: subtractPaise(mrcPaise, providerMrcPaise),
++      ipCount: asInt(doc.ips?.count, 'ips.count'),
++      ipCostPaise: asPaise(doc.ips?.cost, 'ips.cost'),
++      aEndBtsId: asText(doc.technicalDetails?.aEnd?.btsId),
++      bEndBtsId: asText(doc.technicalDetails?.bEnd?.btsId),
++      acceptanceDate: asDate(doc.acceptanceDate, 'acceptanceDate'),
++      remarksSnippet: asText(doc.remarksSnippet, 300),
++      termination: termination && allNull(termination) ? null : termination,
++      rejection: rejection && allNull(rejection) ? null : rejection,
++      srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++      srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++    };
++  }
++});
++
++export const connectionEvents = defineEntity(SOURCE, {
++  entity: 'connection_events',
++  kind: 'fact',
++  view: 'ai_connection_events_v',
++  cursor: { time: 'parentUpdatedAt', tie: '_id', tieType: 'objectId' },
++  target: 'fact_connection_events',
++  contract: 'crm.connection_events',
++  activityDate: 'date',
++  map: (doc, ctx) => {
++    const bandwidth = bandwidthOf(doc.bandwidth);
++    const connectionId = requireId(doc.connectionId, 'connectionId');
++    return {
++      _id: `crm:${connectionId}:${requireId(doc._id, '_id')}`,
++      connectionId: `crm:${connectionId}`,
++      action: requireText(doc.action, 'action'),
++      date: asDate(doc.date, 'date'),
++      performedByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.performedBy)),
++      bandwidthRaw: bandwidth.raw,
++      bandwidthMbps: bandwidth.raw === null ? null : bandwidth.mbps,
++      mrcPaise: asPaise(doc.mrc, 'mrc'),
++      noteSnippet: asText(doc.noteSnippet, 300),
++      parentUpdatedAt: asDate(doc.parentUpdatedAt, 'parentUpdatedAt', { nullable: false })
++    };
++  }
++});
++
++export const serviceRequests = defineEntity(SOURCE, {
++  entity: 'service_requests',
++  kind: 'fact',
++  view: 'ai_service_requests_v',
++  cursor: OBJECT_ID_CURSOR,
++  target: 'fact_service_requests',
++  contract: 'crm.service_requests',
++  activityDate: 'srcCreatedAt',
++  map: (doc, ctx) => {
++    const current = bandwidthOf(doc.bandwidthCurrent);
++    const requested = bandwidthOf(doc.bandwidthRequested);
++    return {
++      _id: `crm:${requireId(doc._id, '_id')}`,
++      customerId: ctx.customerId(SOURCE, idOf(doc.customer)),
++      customerSourceId: idOf(doc.customer),
++      requestType: asText(doc.requestType),
++      status: asText(doc.status),
++      serviceType: asText(doc.serviceType),
++      bandwidthCurrentMbps: current.raw === null ? null : current.mbps,
++      bandwidthRequestedMbps: requested.raw === null ? null : requested.mbps,
++      mrcPaise: asPaise(doc.commercials?.mrc, 'commercials.mrc'),
++      createdByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.createdBy)),
++      approvedByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.approvedBy)),
++      disconnectionReasonSnippet: asText(doc.disconnectionReasonSnippet, 300),
++      raiseDate: asDate(doc.raiseDate, 'raiseDate'),
++      finalDisconnectionDate: asDate(doc.finalDisconnectionDate, 'finalDisconnectionDate'),
++      srcCreatedAt: asDate(doc.createdAt, 'createdAt'),
++      srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++    };
++  }
++});
++
++export const salesTargets = defineEntity(SOURCE, {
++  entity: 'sales_targets',
++  kind: 'fact',
++  view: 'ai_sales_targets_v',
++  cursor: OBJECT_ID_CURSOR,
++  target: 'fact_sales_targets',
++  contract: 'crm.sales_targets',
++  activityDate: 'monthStart',
++  map: (doc, ctx) => {
++    const monthStart = asDate(doc.monthStart, 'monthStart', { nullable: false });
++    return {
++      _id: `crm:${requireId(doc._id, '_id')}`,
++      employeeId: ctx.employeeId(SOURCE, idOf(doc.employee)),
++      employeeSourceId: requireId(doc.employee, 'employee'),
++      monthKey: monthKeyOf(monthStart),
++      monthStart,
++      targetMbps: asNumber(doc.targetMbps, 'targetMbps', { nullable: false }),
++      setByEmployeeId: ctx.employeeId(SOURCE, idOf(doc.setBy)),
++      srcUpdatedAt: asDate(doc.updatedAt, 'updatedAt', { nullable: false })
++    };
++  }
++});
++
++export const crmEntities = Object.freeze({
++  employees,
++  customers,
++  connections,
++  connection_events: connectionEvents,
++  service_requests: serviceRequests,
++  sales_targets: salesTargets
++});
+diff --git a/packages/sources/crm/historyCheck.js b/packages/sources/crm/historyCheck.js
+new file mode 100644
+index 0000000..723c82b
+--- /dev/null
++++ b/packages/sources/crm/historyCheck.js
+@@ -0,0 +1,48 @@
++import { readEntity } from '../src/reader.js';
++import { connectionEvents } from './entities.js';
++
++const SAMPLE_LIMIT = 10;
++const EXCEPTION_RATIO = 0.01;
++
++export async function checkHistoryBump({
++  gate,
++  sourceId = 'crm',
++  spec = connectionEvents,
++  toleranceMs = 60000,
++  maxRows = 50000,
++  runId = null
++}) {
++  let checked = 0;
++  let violations = 0;
++  const sampleIds = [];
++  scan: for await (const batch of readEntity({
++    gate,
++    sourceId,
++    spec,
++    triggeredBy: 'verify',
++    runId
++  })) {
++    for (const doc of batch.items) {
++      checked += 1;
++      const eventDate = doc.date instanceof Date ? doc.date.getTime() : null;
++      const parent = doc.parentUpdatedAt instanceof Date ? doc.parentUpdatedAt.getTime() : null;
++      if (eventDate !== null && parent !== null && eventDate > parent + toleranceMs) {
++        violations += 1;
++        if (sampleIds.length < SAMPLE_LIMIT) sampleIds.push(`${doc.connectionId}:${doc._id}`);
++      }
++      if (checked >= maxRows) break scan;
++    }
++  }
++  const ratio = checked === 0 ? 0 : violations / checked;
++  let conclusion = 'consistent';
++  if (violations > 0) conclusion = ratio < EXCEPTION_RATIO ? 'exceptions' : 'suspect';
++  return {
++    checked,
++    violations,
++    ratio,
++    sampleIds,
++    conclusion,
++    recommendFullRescan: conclusion === 'suspect',
++    truncated: checked >= maxRows
++  };
++}
+diff --git a/packages/sources/index.js b/packages/sources/index.js
+index 4c050d8..972fd46 100644
+--- a/packages/sources/index.js
++++ b/packages/sources/index.js
+@@ -2,6 +2,8 @@ import crm from './crm/views.spec.js';
+ import bahikhata from './bahikhata/views.spec.js';
+ import invoicing from './invoicing/views.spec.js';
+ import samadhan from './samadhan/views.spec.js';
++import { bahikhataEntities } from './bahikhata/entities.js';
++import { crmEntities } from './crm/entities.js';
+ 
+ export const viewsSpecs = Object.freeze({ crm, bahikhata, invoicing, samadhan });
+ 
+@@ -10,3 +12,54 @@ export function getViewsSpec(sourceId) {
+   if (!spec) throw new Error(`No views spec for ${sourceId}`);
+   return spec;
+ }
++
++export const entitySpecs = Object.freeze({ crm: crmEntities, bahikhata: bahikhataEntities });
++
++export function listEntities(sourceId) {
++  const specs = entitySpecs[sourceId];
++  if (!specs) throw new Error(`No entity specs for ${sourceId}`);
++  return Object.keys(specs);
++}
++
++export function getEntitySpec(sourceId, entity) {
++  const spec = entitySpecs[sourceId]?.[entity];
++  if (!spec) throw new Error(`No entity spec for ${sourceId}.${entity}`);
++  return spec;
++}
++
++export { defineEntity } from './src/spec.js';
++export { MappingError, SourceReaderError } from './src/errors.js';
++export {
++  allNull,
++  asBool,
++  asDate,
++  asInt,
++  asNumber,
++  asPaise,
++  asText,
++  bandwidthOf,
++  createMapContext,
++  idOf,
++  monthKeyOf,
++  normalizeEmail,
++  NULL_MAP_CONTEXT,
++  requireId,
++  requireText
++} from './src/mapping.js';
++export {
++  decodeCursor,
++  defaultIdCodec,
++  encodeCursor,
++  incrementalFilter,
++  readEntity
++} from './src/reader.js';
++export { mapPage, quarantineRecord, sampleRedacted } from './src/pipeline.js';
++export { createCursorStore } from './src/cursorStore.js';
++export { checkHistoryBump } from './crm/historyCheck.js';
++export {
++  LEGACY_SOURCE,
++  buildLegacyRows,
++  extractLiteral,
++  parseMonthLabel,
++  readLegacyExport
++} from './bahikhata/legacy.js';
+diff --git a/packages/sources/package.json b/packages/sources/package.json
+index 243b7ad..a691ac9 100644
+--- a/packages/sources/package.json
++++ b/packages/sources/package.json
+@@ -3,6 +3,13 @@
+   "version": "0.1.0",
+   "private": true,
+   "type": "module",
+-  "exports": { ".": "./index.js" },
+-  "dependencies": { "@fab5/shared": "*", "@fab5/source-gate": "*" }
++  "exports": {
++    ".": "./index.js",
++    "./*": "./*.js"
++  },
++  "dependencies": {
++    "@fab5/shared": "*",
++    "@fab5/source-gate": "*",
++    "luxon": "^3.5.0"
++  }
+ }
+diff --git a/packages/sources/src/cursorStore.js b/packages/sources/src/cursorStore.js
+new file mode 100644
+index 0000000..686e42e
+--- /dev/null
++++ b/packages/sources/src/cursorStore.js
+@@ -0,0 +1,49 @@
++export function createCursorStore({ collection, clock }) {
++  const keyOf = (sourceId, entity) => `${sourceId}:${entity}`;
++
++  return {
++    keyOf,
++    async load(sourceId, entity) {
++      const doc = await collection.findOne({ _id: keyOf(sourceId, entity) });
++      return doc?.cursor ?? null;
++    },
++    async get(sourceId, entity) {
++      return (await collection.findOne({ _id: keyOf(sourceId, entity) })) ?? null;
++    },
++    async save(sourceId, entity, cursor) {
++      await collection.updateOne(
++        { _id: keyOf(sourceId, entity) },
++        { $set: { cursor, updatedAt: clock.now() } },
++        { upsert: true }
++      );
++    },
++    async markSuccess(sourceId, entity, { cursor, fullLoad = false } = {}) {
++      const now = clock.now();
++      const set = { lastSuccessAt: now, lastError: null, updatedAt: now };
++      if (cursor !== undefined) set.cursor = cursor;
++      if (fullLoad) set.lastFullLoadAt = now;
++      await collection.updateOne({ _id: keyOf(sourceId, entity) }, { $set: set }, { upsert: true });
++    },
++    async markError(sourceId, entity, message) {
++      await collection.updateOne(
++        { _id: keyOf(sourceId, entity) },
++        { $set: { lastError: String(message).slice(0, 200), updatedAt: clock.now() } },
++        { upsert: true }
++      );
++    },
++    async markIdReconcile(sourceId, entity) {
++      await collection.updateOne(
++        { _id: keyOf(sourceId, entity) },
++        { $set: { lastIdReconcileAt: clock.now() } },
++        { upsert: true }
++      );
++    },
++    async reset(sourceId, entity) {
++      await collection.updateOne(
++        { _id: keyOf(sourceId, entity) },
++        { $set: { cursor: null, updatedAt: clock.now() } },
++        { upsert: true }
++      );
++    }
++  };
++}
+diff --git a/packages/sources/src/errors.js b/packages/sources/src/errors.js
+new file mode 100644
+index 0000000..52761ff
+--- /dev/null
++++ b/packages/sources/src/errors.js
+@@ -0,0 +1,17 @@
++export class SourceReaderError extends Error {
++  constructor(message, code, details = {}) {
++    super(message);
++    this.name = 'SourceReaderError';
++    this.code = code;
++    this.details = details;
++  }
++}
++
++export class MappingError extends Error {
++  constructor(message, code = 'MAPPING_INVALID', details = {}) {
++    super(message);
++    this.name = 'MappingError';
++    this.code = code;
++    this.details = details;
++  }
++}
+diff --git a/packages/sources/src/mapping.js b/packages/sources/src/mapping.js
+new file mode 100644
+index 0000000..27cbe85
+--- /dev/null
++++ b/packages/sources/src/mapping.js
+@@ -0,0 +1,103 @@
++import { parseBandwidthDetailed } from '@fab5/shared/bandwidth';
++import { dateKeyOf } from '@fab5/shared/clock';
++import { toPaise } from '@fab5/shared/money';
++import { MappingError } from './errors.js';
++
++const isMissing = (value) => value === null || value === undefined || value === '';
++
++export const idOf = (value) => (value === null || value === undefined ? null : String(value));
++
++export const requireId = (value, field) => {
++  const id = idOf(value);
++  if (id === null || id === '')
++    throw new MappingError(`${field} is missing`, 'ID_MISSING', { field });
++  return id;
++};
++
++export const asText = (value, max = null) => {
++  if (isMissing(value)) return null;
++  const text = typeof value === 'string' ? value : String(value);
++  return max !== null && text.length > max ? text.slice(0, max) : text;
++};
++
++export const requireText = (value, field, max = null) => {
++  const text = asText(value, max);
++  if (text === null || text.trim() === '') {
++    throw new MappingError(`${field} is missing`, 'TEXT_MISSING', { field });
++  }
++  return text;
++};
++
++export const asDate = (value, field, { nullable = true } = {}) => {
++  if (isMissing(value)) {
++    if (nullable) return null;
++    throw new MappingError(`${field} is missing`, 'DATE_MISSING', { field });
++  }
++  const date = value instanceof Date ? value : new Date(value);
++  if (Number.isNaN(date.getTime())) {
++    throw new MappingError(`${field} is not a valid date`, 'DATE_INVALID', { field });
++  }
++  return date;
++};
++
++export const asPaise = (value, field, { nullable = true } = {}) => {
++  if (isMissing(value)) return nullable ? null : 0;
++  const paise = toPaise(value);
++  if (paise === null) {
++    throw new MappingError(`${field} is not a valid amount`, 'AMOUNT_INVALID', { field });
++  }
++  return paise;
++};
++
++export const asInt = (value, field, { nullable = true } = {}) => {
++  if (isMissing(value)) return nullable ? null : 0;
++  const number = Number(value);
++  if (!Number.isInteger(number)) {
++    throw new MappingError(`${field} is not an integer`, 'INT_INVALID', { field });
++  }
++  return number;
++};
++
++export const asNumber = (value, field, { nullable = true } = {}) => {
++  if (isMissing(value)) return nullable ? null : 0;
++  const number = Number(value);
++  if (!Number.isFinite(number)) {
++    throw new MappingError(`${field} is not a number`, 'NUMBER_INVALID', { field });
++  }
++  return number;
++};
++
++export const asBool = (value, fallback = true) =>
++  value === null || value === undefined ? fallback : Boolean(value);
++
++export const bandwidthOf = (raw) => {
++  if (isMissing(raw)) return { raw: null, mbps: 0, parsed: false };
++  const detail = parseBandwidthDetailed(raw);
++  return { raw: String(raw), mbps: detail.mbps, parsed: detail.parsed };
++};
++
++export const monthKeyOf = (date) => dateKeyOf(date).slice(0, 7);
++
++export const normalizeEmail = (value) => {
++  const text = asText(value);
++  return text === null ? null : text.trim().toLowerCase();
++};
++
++export const subtractPaise = (left, right) =>
++  left === null || right === null ? null : left - right;
++
++export const allNull = (object) => Object.values(object).every((value) => value === null);
++
++export function createMapContext({ employees = new Map(), customers = new Map() } = {}) {
++  const lookup = (table, source, id) => {
++    if (id === null || id === undefined) return null;
++    const key = `${source}:${id}`;
++    return (table instanceof Map ? table.get(key) : table(source, id)) ?? null;
++  };
++  return Object.freeze({
++    employeeId: (source, id) => lookup(employees, source, id),
++    customerId: (source, id) => lookup(customers, source, id)
++  });
++}
++
++export const NULL_MAP_CONTEXT = createMapContext();
+diff --git a/packages/sources/src/pipeline.js b/packages/sources/src/pipeline.js
+new file mode 100644
+index 0000000..3f8c138
+--- /dev/null
++++ b/packages/sources/src/pipeline.js
+@@ -0,0 +1,102 @@
++import { contentHash } from '@fab5/shared/hash';
++import { validateContract } from '@fab5/shared/contracts';
++import { scanDocument, matchDeniedKey } from '@fab5/shared/pii';
++import { redactSecrets, truncate } from '@fab5/shared/redact';
++import { sha1Hex } from '@fab5/shared/hash';
++import { MappingError } from './errors.js';
++
++const typeOf = (value) => {
++  if (value === null) return 'null';
++  if (value instanceof Date) return 'date';
++  if (Array.isArray(value)) return 'array';
++  return typeof value;
++};
++
++const docIdOf = (doc) => {
++  const id = doc?._id;
++  return id === null || id === undefined ? 'unknown' : String(id);
++};
++
++export function sampleRedacted(doc) {
++  const fields = Object.keys(doc ?? {})
++    .filter((key) => matchDeniedKey(key) === null)
++    .slice(0, 40)
++    .map((key) => `${key}:${typeOf(doc[key])}`);
++  return truncate(`_id=${docIdOf(doc)}; fields=${fields.join(',')}`, 600);
++}
++
++export function quarantineRecord({ source, spec, doc, page, reason, now }) {
++  return {
++    _id: `quarantine:${sha1Hex(`${source}|${spec.entity}|${docIdOf(doc)}`)}`,
++    source,
++    entity: spec.entity,
++    page,
++    reason: truncate(redactSecrets(reason), 200),
++    sampleRedacted: sampleRedacted(doc),
++    createdAt: now
++  };
++}
++
++function mapOne(spec, doc, ctx, validate) {
++  const mapped = spec.map(doc, ctx);
++  const verdict = validate(spec.contract, mapped);
++  if (!verdict.ok) throw new MappingError(verdict.reason, 'CONTRACT_VIOLATION');
++  const keyHit = scanDocument(mapped).find((hit) => hit.kind === 'key');
++  if (keyHit) throw new MappingError(`denied key ${keyHit.path}`, 'DENIED_KEY');
++  return { mapped, hash: contentHash(mapped) };
++}
++
++export async function mapPage({
++  spec,
++  source,
++  items,
++  page,
++  ctx,
++  clock,
++  runId,
++  loadHashes = null,
++  validate = validateContract
++}) {
++  const now = clock.now();
++  const valid = [];
++  const quarantined = [];
++  for (const doc of items) {
++    try {
++      valid.push(mapOne(spec, doc, ctx, validate));
++    } catch (error) {
++      quarantined.push(
++        quarantineRecord({
++          source,
++          spec,
++          doc,
++          page,
++          reason: error?.message ?? 'mapping failed',
++          now
++        })
++      );
++    }
++  }
++
++  const known =
++    spec.target && loadHashes && valid.length > 0
++      ? await loadHashes(
++          spec.target,
++          valid.map(({ mapped }) => mapped._id)
++        )
++      : new Map();
++
++  const rows = [];
++  let unchanged = 0;
++  for (const { mapped, hash } of valid) {
++    if (spec.target && known.get(mapped._id) === hash) {
++      unchanged += 1;
++      continue;
++    }
++    rows.push(
++      spec.target
++        ? { ...mapped, _src: source, _hash: hash, _runId: runId, _syncedAt: now, _deleted: false }
++        : { ...mapped, _hash: hash }
++    );
++  }
++  return { rows, unchanged, quarantined, read: items.length };
++}
+diff --git a/packages/sources/src/reader.js b/packages/sources/src/reader.js
+new file mode 100644
+index 0000000..a7d4e2c
+--- /dev/null
++++ b/packages/sources/src/reader.js
+@@ -0,0 +1,104 @@
++import { idToString, toMongoId } from '@fab5/source-gate/engines/mongoIds';
++import { SourceReaderError } from './errors.js';
++
++export const defaultIdCodec = Object.freeze({
++  decode: (value, spec) => (spec.cursor.tieType === 'objectId' ? toMongoId(value) : value),
++  encode: idToString
++});
++
++export function encodeCursor(spec, doc, codec = defaultIdCodec) {
++  const time = doc?.[spec.cursor.time];
++  const tie = doc?.[spec.cursor.tie];
++  if (!(time instanceof Date) || Number.isNaN(time.getTime())) {
++    throw new SourceReaderError(`Row has no valid ${spec.cursor.time}`, 'CURSOR_TIME_INVALID', {
++      entity: spec.entity
++    });
++  }
++  if (tie === null || tie === undefined) {
++    throw new SourceReaderError(`Row has no ${spec.cursor.tie}`, 'CURSOR_TIE_MISSING', {
++      entity: spec.entity
++    });
++  }
++  return `${time.toISOString()}|${codec.encode(tie)}`;
++}
++
++export function decodeCursor(cursor, spec, codec = defaultIdCodec) {
++  if (cursor === null || cursor === undefined || cursor === '') return null;
++  const text = String(cursor);
++  const at = text.indexOf('|');
++  if (at < 1 || at === text.length - 1) {
++    throw new SourceReaderError('Malformed sync cursor', 'CURSOR_MALFORMED', {
++      entity: spec.entity
++    });
++  }
++  const time = new Date(text.slice(0, at));
++  if (Number.isNaN(time.getTime())) {
++    throw new SourceReaderError('Malformed sync cursor', 'CURSOR_MALFORMED', {
++      entity: spec.entity
++    });
++  }
++  return { time, id: codec.decode(text.slice(at + 1), spec) };
++}
++
++export function incrementalFilter(spec, { since = null, position = null } = {}) {
++  const { time, tie } = spec.cursor;
++  if (position) {
++    return {
++      $or: [
++        { [time]: { $gt: position.time } },
++        { [time]: position.time, [tie]: { $gt: position.id } }
++      ]
++    };
++  }
++  if (since) return { [time]: { $gte: since } };
++  return {};
++}
++
++export async function* readEntity({
++  gate,
++  sourceId,
++  spec,
++  since = null,
++  cursor = null,
++  triggeredBy = 'sync',
++  runId = null,
++  codec = defaultIdCodec
++}) {
++  let position = decodeCursor(cursor, spec, codec);
++  let lastCursor = cursor ?? null;
++  let page = 0;
++  for (;;) {
++    const filter = incrementalFilter(spec, { since, position });
++    const fetched = await gate.read(
++      sourceId,
++      async (client, { limits }) => {
++        const docs = await client
++          .db()
++          .collection(spec.view)
++          .find(filter)
++          .sort({ [spec.cursor.time]: 1, [spec.cursor.tie]: 1 })
++          .limit(limits.pageSize + 1)
++          .maxTimeMS(limits.maxTimeMs)
++          .toArray();
++        const hasMore = docs.length > limits.pageSize;
++        const items = hasMore ? docs.slice(0, limits.pageSize) : docs;
++        return { value: { items, hasMore }, rows: items.length };
++      },
++      { entity: spec.entity, triggeredBy, runId: runId ?? undefined, action: 'read_page' }
++    );
++    page += 1;
++    const last = fetched.items.at(-1);
++    if (last) {
++      lastCursor = encodeCursor(spec, last, codec);
++      position = { time: last[spec.cursor.time], id: last[spec.cursor.tie] };
++    }
++    yield {
++      entity: spec.entity,
++      page,
++      items: fetched.items,
++      hasMore: fetched.hasMore,
++      cursor: lastCursor
++    };
++    if (!fetched.hasMore || fetched.items.length === 0) return;
++  }
++}
+diff --git a/packages/sources/src/spec.js b/packages/sources/src/spec.js
+new file mode 100644
+index 0000000..6ca9012
+--- /dev/null
++++ b/packages/sources/src/spec.js
+@@ -0,0 +1,47 @@
++import { allowedOutputFields, getViewAllowList } from '@fab5/shared/pii';
++import { SourceReaderError } from './errors.js';
++
++const KINDS = new Set(['fact', 'identity']);
++const TIE_TYPES = new Set(['objectId', 'string']);
++
++const fail = (message, details) => {
++  throw new SourceReaderError(message, 'ENTITY_SPEC_INVALID', details);
++};
++
++export function defineEntity(sourceId, spec) {
++  const label = `${sourceId}.${spec?.entity ?? '?'}`;
++  if (!spec || typeof spec.entity !== 'string')
++    fail(`Entity spec for ${sourceId} needs an entity`, { sourceId });
++  if (!KINDS.has(spec.kind)) fail(`${label} has an invalid kind`, { label });
++  if (typeof spec.view !== 'string') fail(`${label} needs a view`, { label });
++  if (typeof spec.map !== 'function') fail(`${label} needs a map function`, { label });
++  if (typeof spec.contract !== 'string') fail(`${label} needs a contract id`, { label });
++  if (spec.kind === 'fact' && typeof spec.target !== 'string')
++    fail(`${label} needs a target`, { label });
++  if (spec.kind === 'identity' && spec.target)
++    fail(`${label} is an identity entity and has no target`, { label });
++  const cursor = spec.cursor ?? {};
++  if (typeof cursor.time !== 'string' || typeof cursor.tie !== 'string') {
++    fail(`${label} needs cursor.time and cursor.tie`, { label });
++  }
++  if (!TIE_TYPES.has(cursor.tieType))
++    fail(`${label} needs cursor.tieType objectId or string`, { label });
++
++  const view = getViewAllowList(sourceId, spec.view);
++  if (view.entity !== spec.entity) {
++    fail(`${label} does not match the view allow-list entity ${view.entity}`, { label });
++  }
++  const outputs = new Set([...allowedOutputFields(view), '_id']);
++  for (const field of [cursor.time, cursor.tie]) {
++    if (!outputs.has(field))
++      fail(`${label} cursor field ${field} is not exported by ${spec.view}`, { label, field });
++  }
++
++  return Object.freeze({
++    sourceId,
++    target: null,
++    activityDate: null,
++    ...spec,
++    cursor: Object.freeze({ ...cursor })
++  });
++}
+diff --git a/packages/sources/test/entities.test.js b/packages/sources/test/entities.test.js
+new file mode 100644
+index 0000000..f23c69b
+--- /dev/null
++++ b/packages/sources/test/entities.test.js
+@@ -0,0 +1,311 @@
++import { allowedOutputFields, getViewAllowList, listViews, scanDocument } from '@fab5/shared/pii';
++import { validateContract, listContracts } from '@fab5/shared/contracts';
++import { describe, expect, it } from 'vitest';
++import {
++  MappingError,
++  NULL_MAP_CONTEXT,
++  createMapContext,
++  entitySpecs,
++  getEntitySpec,
++  listEntities
++} from '../index.js';
++import { fixturesByEntity, ids } from './fixtures.js';
++import { trackedDoc } from './helpers.js';
++
++const withinAllowed = (accessed, allowed) =>
++  [...accessed].filter(
++    (path) =>
++      path !== '_id' &&
++      !allowed.some(
++        (name) => name === path || path.startsWith(`${name}.`) || name.startsWith(`${path}.`)
++      )
++  );
++
++const context = createMapContext({
++  employees: new Map([
++    [`crm:${ids.user1}`, 'emp_A'],
++    [`crm:${ids.user2}`, 'emp_B'],
++    [`bahikhata:${ids.user3}`, 'emp_C']
++  ]),
++  customers: new Map([
++    [`crm:${ids.cust1}`, 'cus_A'],
++    [`bahikhata:${ids.cust2}`, 'cus_A']
++  ])
++});
++
++describe('entity spec registry', () => {
++  it('has one spec per view allow-list entry', () => {
++    for (const sourceId of ['crm', 'bahikhata']) {
++      const views = listViews(sourceId);
++      const specViews = listEntities(sourceId).map(
++        (entity) => getEntitySpec(sourceId, entity).view
++      );
++      expect(specViews.sort()).toEqual([...views].sort());
++    }
++  });
++
++  it('references a contract that exists for every spec', () => {
++    const known = new Set(listContracts());
++    for (const [sourceId, specs] of Object.entries(entitySpecs)) {
++      for (const spec of Object.values(specs)) {
++        expect(known.has(spec.contract), `${sourceId}.${spec.entity}`).toBe(true);
++        expect(spec.contract).toBe(`${sourceId}.${spec.entity}`);
++      }
++    }
++  });
++
++  it('declares fact targets and identity entities consistently', () => {
++    for (const specs of Object.values(entitySpecs)) {
++      for (const spec of Object.values(specs)) {
++        if (spec.kind === 'fact') expect(spec.target).toMatch(/^fact_/);
++        else expect(spec.target).toBeNull();
++      }
++    }
++  });
++
++  it('uses the compound cursor with a tie field on every spec', () => {
++    for (const specs of Object.values(entitySpecs)) {
++      for (const spec of Object.values(specs)) {
++        expect(spec.cursor.tie).toBe('_id');
++        expect(['updatedAt', 'parentUpdatedAt']).toContain(spec.cursor.time);
++      }
++    }
++    expect(getEntitySpec('crm', 'connection_events').cursor.time).toBe('parentUpdatedAt');
++  });
++
++  it('freezes specs', () => {
++    expect(Object.isFrozen(getEntitySpec('crm', 'connections'))).toBe(true);
++    expect(Object.isFrozen(getEntitySpec('crm', 'connections').cursor)).toBe(true);
++  });
++});
++
++describe('entity mapping reads only allow-listed view fields', () => {
++  for (const [sourceId, entities] of Object.entries(fixturesByEntity)) {
++    for (const [entity, doc] of Object.entries(entities)) {
++      it(`${sourceId}.${entity} never touches a field outside its view`, () => {
++        const spec = getEntitySpec(sourceId, entity);
++        const allowed = allowedOutputFields(getViewAllowList(sourceId, spec.view));
++        const { proxy, seen } = trackedDoc(doc);
++        spec.map(proxy, context);
++        expect(withinAllowed(seen, allowed)).toEqual([]);
++      });
++
++      it(`${sourceId}.${entity} produces a contract-valid row without denied keys`, () => {
++        const spec = getEntitySpec(sourceId, entity);
++        const mapped = spec.map(doc, context);
++        expect(validateContract(spec.contract, mapped)).toEqual({ ok: true, reason: null });
++        expect(scanDocument(mapped).filter((hit) => hit.kind === 'key')).toEqual([]);
++        const serialized = JSON.stringify(mapped);
++        for (const leaked of [
++          'rt-secret',
++          'reset-secret',
++          '$2b$10$hash',
++          '123412341234',
++          'ABCDE1234F',
++          'secret street',
++          'UTR123',
++          'billing@acme.example'
++        ]) {
++          expect(serialized).not.toContain(leaked);
++        }
++      });
++    }
++  }
++});
++
++describe('CRM mapping', () => {
++  const crm = (entity) => getEntitySpec('crm', entity);
++
++  it('normalizes employees', () => {
++    const mapped = crm('employees').map(fixturesByEntity.crm.employees, context);
++    expect(mapped).toMatchObject({
++      _id: `crm:${ids.user1}`,
++      sourceUserId: ids.user1,
++      email: 'asha.rao@example.com',
++      name: 'Asha Rao',
++      sourceRole: 'sales',
++      active: true
++    });
++  });
++
++  it('maps customers with the manager resolved', () => {
++    const mapped = crm('customers').map(fixturesByEntity.crm.customers, context);
++    expect(mapped).toMatchObject({
++      _id: `crm:${ids.cust1}`,
++      name: 'Acme Networks Pvt Ltd',
++      state: 'Maharashtra',
++      managedByEmployeeId: 'emp_A',
++      managedBySourceId: ids.user1
++    });
++  });
++
++  it('maps connections to integer paise, bandwidth and margin', () => {
++    const mapped = crm('connections').map(fixturesByEntity.crm.connections, context);
++    expect(mapped).toMatchObject({
++      _id: `crm:${ids.conn1}`,
++      opportunityId: 'OPP-1001',
++      customerId: 'cus_A',
++      customerSourceId: ids.cust1,
++      createdByEmployeeId: 'emp_A',
++      approvedByEmployeeId: 'emp_B',
++      activatedByEmployeeId: null,
++      bandwidthRaw: '500 Mbps',
++      bandwidthMbps: 500,
++      bandwidthParsed: true,
++      telcoProvider: 'Airtel',
++      mrcPaise: 1250050,
++      otcPaise: 200000,
++      providerMrcPaise: 900000,
++      marginMrcPaise: 350050,
++      ipCount: 4,
++      ipCostPaise: 40000,
++      aEndBtsId: 'BTS-1',
++      bEndBtsId: 'BTS-2',
++      termination: null,
++      rejection: null
++    });
++    expect(mapped.srcUpdatedAt).toEqual(new Date('2026-08-05T05:00:00.000Z'));
++  });
++
++  it('flags unparsed bandwidth and keeps a null margin when a cost is missing', () => {
++    const doc = {
++      ...fixturesByEntity.crm.connections,
++      bandwidth: 'as per plan',
++      providerCost: undefined
++    };
++    const mapped = crm('connections').map(doc, NULL_MAP_CONTEXT);
++    expect(mapped).toMatchObject({
++      bandwidthMbps: 0,
++      bandwidthParsed: false,
++      providerMrcPaise: null,
++      marginMrcPaise: null,
++      customerId: null,
++      customerSourceId: ids.cust1
++    });
++  });
++
++  it('keeps termination detail when any part is present', () => {
++    const doc = {
++      ...fixturesByEntity.crm.connections,
++      termination: {
++        raiseDate: new Date('2026-08-20T00:00:00.000Z'),
++        finalDate: null,
++        reasonSnippet: 'Moving office'
++      }
++    };
++    const mapped = crm('connections').map(doc, context);
++    expect(mapped.termination).toEqual({
++      raiseDate: new Date('2026-08-20T00:00:00.000Z'),
++      finalDate: null,
++      reasonSnippet: 'Moving office'
++    });
++  });
++
++  it('rejects an unparseable amount instead of zeroing it', () => {
++    const doc = { ...fixturesByEntity.crm.connections, commercials: { mrc: 'abc' } };
++    expect(() => crm('connections').map(doc, context)).toThrow(MappingError);
++  });
++
++  it('rejects a connection without a status', () => {
++    const doc = { ...fixturesByEntity.crm.connections, status: null };
++    expect(() => crm('connections').map(doc, context)).toThrow(/status is missing/);
++  });
++
++  it('builds composite ids for connection events', () => {
++    const mapped = crm('connection_events').map(fixturesByEntity.crm.connection_events, context);
++    expect(mapped).toMatchObject({
++      _id: `crm:${ids.conn1}:${ids.hist1}`,
++      connectionId: `crm:${ids.conn1}`,
++      action: 'UPGRADE',
++      bandwidthRaw: '1 Gbps',
++      bandwidthMbps: 1000,
++      mrcPaise: 1500000,
++      performedByEmployeeId: 'emp_A'
++    });
++    expect(mapped.parentUpdatedAt).toEqual(new Date('2026-08-05T05:00:00.000Z'));
++  });
++
++  it('leaves bandwidth null on events that carry none', () => {
++    const doc = { ...fixturesByEntity.crm.connection_events, bandwidth: null };
++    const mapped = crm('connection_events').map(doc, context);
++    expect(mapped.bandwidthRaw).toBeNull();
++    expect(mapped.bandwidthMbps).toBeNull();
++  });
++
++  it('maps service requests', () => {
++    const mapped = crm('service_requests').map(fixturesByEntity.crm.service_requests, context);
++    expect(mapped).toMatchObject({
++      requestType: 'Upgrade',
++      bandwidthCurrentMbps: 100,
++      bandwidthRequestedMbps: 200,
++      mrcPaise: 800000,
++      customerId: 'cus_A',
++      approvedByEmployeeId: null
++    });
++  });
++
++  it('derives the IST month key for sales targets', () => {
++    const mapped = crm('sales_targets').map(fixturesByEntity.crm.sales_targets, context);
++    expect(mapped).toMatchObject({
++      monthKey: '2026-09',
++      targetMbps: 1500,
++      employeeId: 'emp_A',
++      employeeSourceId: ids.user1,
++      setByEmployeeId: 'emp_B'
++    });
++  });
++});
++
++describe('BahiKhata mapping', () => {
++  const bahikhata = (entity) => getEntitySpec('bahikhata', entity);
++
++  it('maps customers with the CRM link and advance in paise', () => {
++    const mapped = bahikhata('customers').map(fixturesByEntity.bahikhata.customers, context);
++    expect(mapped).toMatchObject({
++      _id: `bahikhata:${ids.cust2}`,
++      crmId: ids.cust1,
++      name: 'ACME NETWORKS PRIVATE LIMITED',
++      collectionsManagerEmployeeId: 'emp_C',
++      availableAdvancePaise: 150075
++    });
++  });
++
++  it('maps ledger entries with zero for absent amounts', () => {
++    const mapped = bahikhata('ledger_entries').map(
++      fixturesByEntity.bahikhata.ledger_entries,
++      context
++    );
++    expect(mapped).toMatchObject({
++      _id: `bahikhata:${ids.ledger1}`,
++      customerId: 'cus_A',
++      customerSourceId: ids.cust2,
++      invoiceNo: 'INV-2026-0042',
++      debitPaise: 1180000,
++      creditPaise: 0,
++      advancePaise: 0,
++      amountPaidPaise: 500000,
++      balanceDuePaise: 680000,
++      paymentStatus: 'Partially Paid',
++      addedByEmployeeId: 'emp_C'
++    });
++  });
++
++  it('keeps unmapped customers addressable by their source id', () => {
++    const mapped = bahikhata('ledger_entries').map(
++      fixturesByEntity.bahikhata.ledger_entries,
++      NULL_MAP_CONTEXT
++    );
++    expect(mapped.customerId).toBeNull();
++    expect(mapped.customerSourceId).toBe(ids.cust2);
++  });
++
++  it('rejects a ledger entry with a corrupt amount', () => {
++    const doc = { ...fixturesByEntity.bahikhata.ledger_entries, debit: 'twelve' };
++    expect(() => bahikhata('ledger_entries').map(doc, context)).toThrow(MappingError);
++  });
++
++  it('rejects a ledger entry without a date', () => {
++    const doc = { ...fixturesByEntity.bahikhata.ledger_entries, date: null };
++    expect(() => bahikhata('ledger_entries').map(doc, context)).toThrow(/date is missing/);
++  });
++});
+diff --git a/packages/sources/test/fixtures.js b/packages/sources/test/fixtures.js
+new file mode 100644
+index 0000000..254a5a7
+--- /dev/null
++++ b/packages/sources/test/fixtures.js
+@@ -0,0 +1,175 @@
++const d = (text) => new Date(text);
++
++export const ids = {
++  conn1: '64f000000000000000000001',
++  conn2: '64f000000000000000000002',
++  hist1: '64f0000000000000000000b1',
++  hist2: '64f0000000000000000000b2',
++  cust1: '64f0000000000000000000c1',
++  cust2: '64f0000000000000000000c2',
++  user1: '64f0000000000000000000a1',
++  user2: '64f0000000000000000000a2',
++  user3: '64f0000000000000000000a3',
++  sr1: '64f0000000000000000000d1',
++  target1: '64f0000000000000000000e1',
++  ledger1: '64f0000000000000000000f1'
++};
++
++export const crmUser = {
++  _id: ids.user1,
++  name: 'Asha Rao',
++  email: ' Asha.Rao@Example.com ',
++  role: 'sales',
++  isActive: true,
++  createdAt: d('2025-01-10T05:00:00.000Z'),
++  updatedAt: d('2026-08-01T05:00:00.000Z'),
++  password: '$2b$10$hash',
++  phone: '9999988888',
++  adharNumber: '123412341234',
++  panNumber: 'ABCDE1234F',
++  refreshToken: 'rt-secret'
++};
++
++export const crmCustomer = {
++  _id: ids.cust1,
++  name: 'Acme Networks Pvt Ltd',
++  customerType: 'Enterprise',
++  managedBy: ids.user1,
++  isActive: true,
++  state: 'Maharashtra',
++  createdAt: d('2025-02-01T05:00:00.000Z'),
++  updatedAt: d('2026-08-02T05:00:00.000Z'),
++  email: 'billing@acme.example',
++  mobile: '9876500000',
++  gstNumber: '27ABCDE1234F1Z5',
++  address: { street: '1 Main Road', city: 'Pune', pincode: '411001' }
++};
++
++export const crmConnection = {
++  _id: ids.conn1,
++  opportunityId: 'OPP-1001',
++  customer: ids.cust1,
++  createdBy: ids.user1,
++  approvedBy: ids.user2,
++  activatedBy: null,
++  serviceType: 'ILL',
++  bandwidth: '500 Mbps',
++  status: 'Active',
++  acceptanceDate: d('2026-08-03T00:00:00.000Z'),
++  technicalDetails: {
++    telcoProvider: 'Airtel',
++    aEnd: { btsId: 'BTS-1', address: 'secret street', coordinates: [1, 2] },
++    bEnd: { btsId: 'BTS-2', address: 'other street', coordinates: [3, 4] }
++  },
++  commercials: { mrc: 12500.5, otc: '2,000' },
++  providerCost: { mrc: 9000 },
++  ips: { count: 4, cost: 400 },
++  remarksSnippet: 'Delivered on time',
++  termination: { raiseDate: null, finalDate: null, reasonSnippet: null },
++  rejection: null,
++  createdAt: d('2026-07-01T05:00:00.000Z'),
++  updatedAt: d('2026-08-05T05:00:00.000Z'),
++  purchaseOrder: { url: 'https://files.example/po.pdf' },
++  caf: { url: 'https://files.example/caf.pdf' }
++};
++
++export const crmEvent = {
++  _id: ids.hist1,
++  connectionId: ids.conn1,
++  action: 'UPGRADE',
++  date: d('2026-08-04T05:00:00.000Z'),
++  performedBy: ids.user1,
++  bandwidth: '1 Gbps',
++  mrc: '15000',
++  noteSnippet: 'Customer requested upgrade',
++  parentUpdatedAt: d('2026-08-05T05:00:00.000Z')
++};
++
++export const crmServiceRequest = {
++  _id: ids.sr1,
++  customer: ids.cust1,
++  requestType: 'Upgrade',
++  status: 'Pending',
++  serviceType: 'ILL',
++  bandwidthCurrent: '100 Mbps',
++  bandwidthRequested: '200',
++  commercials: { mrc: '8000.00' },
++  createdBy: ids.user1,
++  approvedBy: null,
++  raiseDate: d('2026-08-06T00:00:00.000Z'),
++  finalDisconnectionDate: null,
++  disconnectionReasonSnippet: null,
++  createdAt: d('2026-08-06T05:00:00.000Z'),
++  updatedAt: d('2026-08-07T05:00:00.000Z')
++};
++
++export const crmSalesTarget = {
++  _id: ids.target1,
++  employee: ids.user1,
++  monthStart: d('2026-08-31T18:30:00.000Z'),
++  targetMbps: 1500,
++  setBy: ids.user2,
++  createdAt: d('2026-08-01T05:00:00.000Z'),
++  updatedAt: d('2026-08-02T05:00:00.000Z')
++};
++
++export const bkUser = {
++  _id: ids.user3,
++  name: 'Ravi Kumar',
++  email: 'ravi@example.com',
++  role: 'collector',
++  createdAt: d('2025-03-01T05:00:00.000Z'),
++  updatedAt: d('2026-08-01T05:00:00.000Z'),
++  password: '$2b$10$hash',
++  resetPasswordToken: 'reset-secret'
++};
++
++export const bkCustomer = {
++  _id: ids.cust2,
++  crmId: ids.cust1,
++  companyName: 'ACME NETWORKS PRIVATE LIMITED',
++  manager: ids.user3,
++  availableAdvance: '1500.75',
++  isActive: true,
++  createdAt: d('2025-03-05T05:00:00.000Z'),
++  updatedAt: d('2026-08-02T05:00:00.000Z'),
++  address: 'secret address',
++  gstNumber: '27ABCDE1234F1Z5'
++};
++
++export const bkLedger = {
++  _id: ids.ledger1,
++  customer: ids.cust2,
++  date: d('2026-08-10T00:00:00.000Z'),
++  invoiceNo: 'INV-2026-0042',
++  debit: '11800.00',
++  credit: null,
++  advanceAmount: 0,
++  status: 'approved',
++  paymentStatus: 'Partially Paid',
++  amountPaid: '5000',
++  balanceDue: '6800',
++  addedBy: ids.user3,
++  descriptionSnippet: 'Monthly rental August',
++  createdAt: d('2026-08-10T05:00:00.000Z'),
++  updatedAt: d('2026-08-12T05:00:00.000Z'),
++  bankInfo: { bankName: 'HDFC', utr: 'UTR123' },
++  remarks: 'internal note',
++  allocations: [{ x: 1 }]
++};
++
++export const fixturesByEntity = {
++  crm: {
++    employees: crmUser,
++    customers: crmCustomer,
++    connections: crmConnection,
++    connection_events: crmEvent,
++    service_requests: crmServiceRequest,
++    sales_targets: crmSalesTarget
++  },
++  bahikhata: {
++    employees: bkUser,
++    customers: bkCustomer,
++    ledger_entries: bkLedger
++  }
++};
+diff --git a/packages/sources/test/helpers.js b/packages/sources/test/helpers.js
+new file mode 100644
+index 0000000..9ca44a0
+--- /dev/null
++++ b/packages/sources/test/helpers.js
+@@ -0,0 +1,129 @@
++const comparable = (value) => (value instanceof Date ? value.getTime() : value);
++
++const compare = (left, right) => {
++  const a = comparable(left);
++  const b = comparable(right);
++  if (a < b) return -1;
++  if (a > b) return 1;
++  return 0;
++};
++
++const matches = (doc, filter) =>
++  Object.entries(filter).every(([key, condition]) => {
++    if (key === '$or') return condition.some((branch) => matches(doc, branch));
++    if (condition && typeof condition === 'object' && !(condition instanceof Date)) {
++      return Object.entries(condition).every(([op, operand]) => {
++        const result = compare(doc[key], operand);
++        if (op === '$gt') return result > 0;
++        if (op === '$gte') return result >= 0;
++        throw new Error(`unsupported operator ${op}`);
++      });
++    }
++    return compare(doc[key], condition) === 0;
++  });
++
++export function createFakeView(docs) {
++  const view = {
++    queries: [],
++    find(filter = {}) {
++      const state = { filter, sort: null, limit: Infinity, maxTimeMS: null };
++      const chain = {
++        sort(spec) {
++          state.sort = spec;
++          return chain;
++        },
++        limit(value) {
++          state.limit = value;
++          return chain;
++        },
++        maxTimeMS(value) {
++          state.maxTimeMS = value;
++          return chain;
++        },
++        async toArray() {
++          view.queries.push({ ...state });
++          const found = docs.filter((doc) => matches(doc, state.filter));
++          if (state.sort) {
++            const keys = Object.keys(state.sort);
++            found.sort((a, b) => {
++              for (const key of keys) {
++                const result = compare(a[key], b[key]) * state.sort[key];
++                if (result !== 0) return result;
++              }
++              return 0;
++            });
++          }
++          return found.slice(0, state.limit);
++        }
++      };
++      return chain;
++    }
++  };
++  return view;
++}
++
++export function createFakeClient(views) {
++  return { db: () => ({ collection: (name) => views[name] }) };
++}
++
++export function createFakeGate({ views, pageSize = 3, maxTimeMs = 30000 } = {}) {
++  const client = createFakeClient(views);
++  const gate = {
++    calls: [],
++    async read(sourceId, fn, ctx = {}) {
++      gate.calls.push({ sourceId, ctx });
++      const controller = new AbortController();
++      const outcome = await fn(client, {
++        signal: controller.signal,
++        limits: { pageSize, maxTimeMs }
++      });
++      return outcome && typeof outcome === 'object' && 'value' in outcome ? outcome.value : outcome;
++    }
++  };
++  return gate;
++}
++
++export function createFakeCollection() {
++  const docs = new Map();
++  return {
++    docs,
++    async findOne(filter) {
++      const doc = docs.get(filter._id);
++      return doc ? structuredClone(doc) : null;
++    },
++    async updateOne(filter, update, options = {}) {
++      const existing = docs.get(filter._id);
++      if (!existing && !options.upsert) return { matchedCount: 0 };
++      docs.set(filter._id, { ...(existing ?? { _id: filter._id }), ...update.$set });
++      return { matchedCount: existing ? 1 : 0 };
++    }
++  };
++}
++
++export function createFixedClock(start = '2026-09-01T00:00:00.000Z') {
++  let ms = new Date(start).getTime();
++  return {
++    now: () => new Date(ms),
++    monotonic: () => ms,
++    advance(delta) {
++      ms += delta;
++    }
++  };
++}
++
++export function trackAccess(value, path = '', seen = new Set()) {
++  if (value === null || typeof value !== 'object' || value instanceof Date) return value;
++  return new Proxy(value, {
++    get(target, key, receiver) {
++      if (typeof key === 'symbol') return Reflect.get(target, key, receiver);
++      const next = path ? `${path}.${key}` : key;
++      if (!Array.isArray(target)) seen.add(next);
++      return trackAccess(Reflect.get(target, key, receiver), next, seen);
++    }
++  });
++}
++
++export function trackedDoc(doc) {
++  const seen = new Set();
++  return { proxy: trackAccess(doc, '', seen), seen };
++}
+diff --git a/packages/sources/test/historyCheck.test.js b/packages/sources/test/historyCheck.test.js
+new file mode 100644
+index 0000000..51c427a
+--- /dev/null
++++ b/packages/sources/test/historyCheck.test.js
+@@ -0,0 +1,94 @@
++import { describe, expect, it } from 'vitest';
++import { checkHistoryBump } from '../index.js';
++import { createFakeGate, createFakeView } from './helpers.js';
++
++const event = (n, date, parent) => ({
++  _id: `ev-${String(n).padStart(3, '0')}`,
++  connectionId: `conn-${n}`,
++  action: 'UPGRADE',
++  date: new Date(date),
++  parentUpdatedAt: new Date(parent)
++});
++
++const gateFor = (docs, pageSize = 3) =>
++  createFakeGate({ views: { ai_connection_events_v: createFakeView(docs) }, pageSize });
++
++describe('checkHistoryBump', () => {
++  it('is consistent when every event is on or before its parent update', async () => {
++    const docs = [
++      event(1, '2026-08-01T10:00:00.000Z', '2026-08-01T10:00:00.000Z'),
++      event(2, '2026-08-01T09:00:00.000Z', '2026-08-02T10:00:00.000Z'),
++      event(3, '2026-08-03T10:00:00.500Z', '2026-08-03T10:00:00.000Z')
++    ];
++    const result = await checkHistoryBump({ gate: gateFor(docs) });
++    expect(result).toMatchObject({
++      checked: 3,
++      violations: 0,
++      conclusion: 'consistent',
++      recommendFullRescan: false,
++      truncated: false
++    });
++  });
++
++  it('reports isolated exceptions without recommending a rescan', async () => {
++    const docs = Array.from({ length: 200 }, (_, i) =>
++      event(
++        i + 1,
++        '2026-08-01T10:00:00.000Z',
++        `2026-08-${String((i % 28) + 1).padStart(2, '0')}T10:00:00.000Z`
++      )
++    );
++    docs.push(event(500, '2026-09-30T10:00:00.000Z', '2026-08-01T10:00:00.000Z'));
++    const result = await checkHistoryBump({ gate: gateFor(docs, 50) });
++    expect(result).toMatchObject({
++      checked: 201,
++      violations: 1,
++      conclusion: 'exceptions',
++      recommendFullRescan: false,
++      sampleIds: ['conn-500:ev-500']
++    });
++  });
++
++  it('flags a suspect when history appends do not bump the parent', async () => {
++    const docs = [
++      event(1, '2026-08-10T10:00:00.000Z', '2026-08-01T10:00:00.000Z'),
++      event(2, '2026-08-11T10:00:00.000Z', '2026-08-01T11:00:00.000Z'),
++      event(3, '2026-08-01T10:00:00.000Z', '2026-08-01T12:00:00.000Z')
++    ];
++    const result = await checkHistoryBump({ gate: gateFor(docs) });
++    expect(result.conclusion).toBe('suspect');
++    expect(result.recommendFullRescan).toBe(true);
++    expect(result.violations).toBe(2);
++    expect(result.sampleIds).toEqual(['conn-1:ev-001', 'conn-2:ev-002']);
++  });
++
++  it('respects the tolerance window', async () => {
++    const docs = [event(1, '2026-08-01T10:00:30.000Z', '2026-08-01T10:00:00.000Z')];
++    expect((await checkHistoryBump({ gate: gateFor(docs), toleranceMs: 60000 })).violations).toBe(
++      0
++    );
++    expect((await checkHistoryBump({ gate: gateFor(docs), toleranceMs: 0 })).violations).toBe(1);
++  });
++
++  it('stops at maxRows and says so', async () => {
++    const docs = Array.from({ length: 10 }, (_, i) =>
++      event(i + 1, '2026-08-01T10:00:00.000Z', '2026-08-01T10:00:00.000Z')
++    );
++    const result = await checkHistoryBump({ gate: gateFor(docs, 4), maxRows: 5 });
++    expect(result).toMatchObject({ checked: 5, truncated: true });
++  });
++
++  it('handles a source with no events', async () => {
++    const result = await checkHistoryBump({ gate: gateFor([]) });
++    expect(result).toMatchObject({ checked: 0, violations: 0, ratio: 0, conclusion: 'consistent' });
++  });
++
++  it('reads through the gate as a verification', async () => {
++    const gate = gateFor([event(1, '2026-08-01T10:00:00.000Z', '2026-08-01T10:00:00.000Z')]);
++    await checkHistoryBump({ gate });
++    expect(gate.calls[0]).toMatchObject({
++      sourceId: 'crm',
++      ctx: { entity: 'connection_events', triggeredBy: 'verify' }
++    });
++  });
++});
+diff --git a/packages/sources/test/legacy.test.js b/packages/sources/test/legacy.test.js
+new file mode 100644
+index 0000000..fa776a2
+--- /dev/null
++++ b/packages/sources/test/legacy.test.js
+@@ -0,0 +1,265 @@
++import { describe, expect, it } from 'vitest';
++import {
++  LEGACY_SOURCE,
++  SourceReaderError,
++  buildLegacyRows,
++  extractLiteral,
++  parseMonthLabel,
++  readLegacyExport
++} from '../index.js';
++
++const KEYS = { asha: 'Asha.Rao@Example.com', ravi: 'ravi@example.com' };
++
++const wideSource = `
++import x from 'y';
++
++export const LEGACY_KEY_TO_EMAIL = {
++  asha: 'Asha.Rao@Example.com',
++  ravi: 'ravi@example.com',
++  // retired employee
++  meena: 'meena@example.com'
++};
++
++const RAW_HISTORICAL_GROWTH = [
++  { month: '2024-01', asha: 100000, ravi: '50,000.50', ghost: 700, total: 150700.5 },
++  { month: '2024-02', asha: 120000, ravi: 0, meena: 5 },
++  /* quarter end */
++  { month: 'Mar 2024', asha: 130000.755, ravi: 60000 }
++];
++`;
++
++describe('extractLiteral', () => {
++  it('reads an array behind const and a map behind export const', () => {
++    expect(extractLiteral(wideSource, 'RAW_HISTORICAL_GROWTH')).toHaveLength(3);
++    expect(extractLiteral(wideSource, 'LEGACY_KEY_TO_EMAIL')).toMatchObject({
++      asha: 'Asha.Rao@Example.com'
++    });
++  });
++
++  it('tolerates a type annotation, as const and Object.freeze', () => {
++    const typed = "const RAW: Array<{ month: string }> = [{ month: '2024-01' }] as const;";
++    expect(extractLiteral(typed, 'RAW')).toEqual([{ month: '2024-01' }]);
++    expect(extractLiteral('let RAW = Object.freeze([{ a: 1 }]);', 'RAW')).toEqual([{ a: 1 }]);
++  });
++
++  it('is not fooled by brackets inside strings or comments', () => {
++    const text = 'const RAW = [{ note: \'a ] } ) b\', other: "[" }, /* ] */ { n: 1 } // }\n];';
++    expect(extractLiteral(text, 'RAW')).toEqual([{ note: 'a ] } ) b', other: '[' }, { n: 1 }]);
++  });
++
++  it('does not match a longer identifier that ends with the name', () => {
++    expect(() => extractLiteral('const MY_RAW = [1];', 'RAW')).toThrow(/not found/);
++  });
++
++  it('fails clearly when the name is missing', () => {
++    expect(() => extractLiteral('const a = 1;', 'RAW')).toThrow(SourceReaderError);
++    expect(() => extractLiteral('const a = 1;', 'RAW')).toThrow(/RAW not found/);
++  });
++
++  it('refuses literals that are not static', () => {
++    expect(() => extractLiteral('const RAW = [{ a: compute() }];', 'RAW')).toThrow(
++      /static literal/
++    );
++    expect(() => extractLiteral('const RAW = buildRows();', 'RAW')).toThrow(
++      /array or object literal/
++    );
++    expect(() => extractLiteral('const RAW = [{ a: process.exit(1) }];', 'RAW')).toThrow(
++      /static literal/
++    );
++  });
++
++  it('refuses unterminated literals', () => {
++    expect(() => extractLiteral('const RAW = [{ a: 1 }', 'RAW')).toThrow(/Unterminated/);
++  });
++});
++
++describe('parseMonthLabel', () => {
++  it.each([
++    ['2024-01', '2024-01'],
++    ['2024-1', '2024-01'],
++    ['2024-03-15', '2024-03'],
++    ['2024/04', '2024-04'],
++    ['Mar 2024', '2024-03'],
++    ['March 2024', '2024-03'],
++    ['Apr-2024', '2024-04'],
++    ['May-24', '2024-05'],
++    ['Jun 24', '2024-06']
++  ])('parses %s', (label, monthKey) => {
++    expect(parseMonthLabel(label)?.monthKey).toBe(monthKey);
++  });
++
++  it('anchors the month start at IST midnight', () => {
++    expect(parseMonthLabel('2024-01').monthStart.toISOString()).toBe('2023-12-31T18:30:00.000Z');
++  });
++
++  it('accepts a Date and rejects nonsense', () => {
++    expect(parseMonthLabel(new Date('2024-05-20T00:00:00.000Z')).monthKey).toBe('2024-05');
++    expect(parseMonthLabel('someday')).toBeNull();
++    expect(parseMonthLabel(null)).toBeNull();
++  });
++});
++
++describe('buildLegacyRows (one column per employee)', () => {
++  const rows = [
++    { month: '2024-01', asha: 100000, ravi: '50,000.50', total: 150000.5 },
++    { month: '2024-02', asha: 120000, ravi: 0 },
++    { month: 'Mar 2024', asha: 130000.755, ravi: 60000, ghost: 700 }
++  ];
++  const result = buildLegacyRows({ rows, keyToEmail: KEYS });
++
++  it('produces one row per employee and month, sorted', () => {
++    expect(result.rows.map((row) => `${row.monthKey} ${row.email}`)).toEqual([
++      '2024-01 asha.rao@example.com',
++      '2024-01 ravi@example.com',
++      '2024-02 asha.rao@example.com',
++      '2024-02 ravi@example.com',
++      '2024-03 asha.rao@example.com',
++      '2024-03 ravi@example.com'
++    ]);
++    expect(result.rows.every((row) => row.source === LEGACY_SOURCE)).toBe(true);
++  });
++
++  it('converts to integer paise with half-away-from-zero rounding', () => {
++    const find = (email, monthKey) =>
++      result.rows.find((row) => row.email === email && row.monthKey === monthKey);
++    expect(find('ravi@example.com', '2024-01').collectedPaise).toBe(5000050);
++    expect(find('asha.rao@example.com', '2024-03').collectedPaise).toBe(13000076);
++    expect(find('ravi@example.com', '2024-02').collectedPaise).toBe(0);
++  });
++
++  it('keeps unmapped keys out of the rows but inside the source total', () => {
++    expect(result.unmapped).toEqual({ ghost: { rows: 1, totalPaise: 70000 } });
++    const { sourceTotalPaise, exportedTotalPaise, unmappedTotalPaise } = result.totals;
++    expect(sourceTotalPaise).toBe(exportedTotalPaise + unmappedTotalPaise);
++    expect(sourceTotalPaise).toBe(10000000 + 5000050 + 12000000 + 0 + 13000076 + 6000000 + 70000);
++  });
++
++  it('counts entries without the total column', () => {
++    expect(result.counts).toMatchObject({
++      sourceRows: 3,
++      entries: 7,
++      exportedRows: 6,
++      employees: 2,
++      months: 3
++    });
++  });
++
++  it('detects the month field and reports it', () => {
++    expect(result.monthField).toBe('month');
++    expect(
++      buildLegacyRows({ rows: [{ period: '2024-01', asha: 1 }], keyToEmail: KEYS }).monthField
++    ).toBe('period');
++  });
++});
++
++describe('buildLegacyRows (long format and options)', () => {
++  it('reads key and amount fields', () => {
++    const result = buildLegacyRows({
++      rows: [
++        { month: '2024-01', employee: 'asha', collected: 10 },
++        { month: '2024-01', employee: 'ravi', collected: 20 },
++        { month: '2024-02', employee: 'asha', collected: 30 }
++      ],
++      keyToEmail: KEYS,
++      keyField: 'employee',
++      amountField: 'collected'
++    });
++    expect(result.rows.map((row) => row.collectedPaise)).toEqual([1000, 2000, 3000]);
++  });
++
++  it('merges several legacy keys that map to one employee', () => {
++    const result = buildLegacyRows({
++      rows: [{ month: '2024-01', asha: 10, ashaOld: 5 }],
++      keyToEmail: { asha: 'a@example.com', ashaOld: 'a@example.com' }
++    });
++    expect(result.rows).toHaveLength(1);
++    expect(result.rows[0]).toMatchObject({ collectedPaise: 1500, legacyKeys: ['asha', 'ashaOld'] });
++  });
++
++  it('matches keys case-insensitively and accepts pair arrays', () => {
++    const result = buildLegacyRows({
++      rows: [{ month: '2024-01', ASHA: 10 }],
++      keyToEmail: [['asha', 'a@example.com']]
++    });
++    expect(result.rows).toHaveLength(1);
++  });
++
++  it('can read amounts already in paise', () => {
++    const result = buildLegacyRows({
++      rows: [{ month: '2024-01', asha: 12345 }],
++      keyToEmail: KEYS,
++      unit: 'paise'
++    });
++    expect(result.rows[0].collectedPaise).toBe(12345);
++  });
++
++  it('honors an explicit month field and ignore list', () => {
++    const result = buildLegacyRows({
++      rows: [{ when: '2024-01', asha: 10, subtotal: 99 }],
++      keyToEmail: KEYS,
++      monthField: 'when',
++      ignoreKeys: ['subtotal']
++    });
++    expect(result.rows).toHaveLength(1);
++    expect(result.totals.sourceTotalPaise).toBe(1000);
++  });
++
++  it('fails on an unreadable month, a corrupt amount, a bad email or an unknown shape', () => {
++    expect(() =>
++      buildLegacyRows({ rows: [{ month: 'later', asha: 1 }], keyToEmail: KEYS })
++    ).toThrow(/Unreadable month at row 0/);
++    expect(() =>
++      buildLegacyRows({
++        rows: [{ month: '2024-01', e: 'x', c: 'abc' }],
++        keyToEmail: KEYS,
++        keyField: 'e',
++        amountField: 'c'
++      })
++    ).toThrow(/Invalid amount/);
++    expect(() =>
++      buildLegacyRows({ rows: [{ month: '2024-01', asha: 1 }], keyToEmail: { asha: 'nope' } })
++    ).toThrow(/Invalid email/);
++    expect(() => buildLegacyRows({ rows: [{ foo: 1 }], keyToEmail: KEYS })).toThrow(/month field/);
++    expect(() => buildLegacyRows({ rows: {}, keyToEmail: KEYS })).toThrow(/must be an array/);
++    expect(() =>
++      buildLegacyRows({ rows: [], keyToEmail: KEYS, monthField: 'month', unit: 'cents' })
++    ).toThrow(/unit/);
++  });
++
++  it('returns an empty export for an empty array', () => {
++    const result = buildLegacyRows({ rows: [], keyToEmail: KEYS, monthField: 'month' });
++    expect(result.rows).toEqual([]);
++    expect(result.totals).toEqual({
++      sourceTotalPaise: 0,
++      exportedTotalPaise: 0,
++      unmappedTotalPaise: 0
++    });
++  });
++});
++
++describe('readLegacyExport', () => {
++  it('goes from source text to monthly per-employee rows', () => {
++    const result = readLegacyExport({ text: wideSource });
++    expect(result.counts).toMatchObject({
++      sourceRows: 3,
++      exportedRows: 7,
++      employees: 3,
++      months: 3
++    });
++    expect(result.unmapped).toEqual({ ghost: { rows: 1, totalPaise: 70000 } });
++    const perMonth = new Map();
++    for (const row of result.rows)
++      perMonth.set(row.monthKey, (perMonth.get(row.monthKey) ?? 0) + row.collectedPaise);
++    expect(Object.fromEntries(perMonth)).toEqual({
++      '2024-01': 10000000 + 5000050,
++      '2024-02': 12000000 + 0 + 500,
++      '2024-03': 13000076 + 6000000
++    });
++  });
++
++  it('accepts custom names', () => {
++    const text = "const A = [{ month: '2024-01', x: 1 }]; const B = { x: 'x@example.com' };";
++    const result = readLegacyExport({ text, arrayName: 'A', mapName: 'B' });
++    expect(result.rows[0]).toMatchObject({ email: 'x@example.com', collectedPaise: 100 });
++  });
++});
+diff --git a/packages/sources/test/pipeline.test.js b/packages/sources/test/pipeline.test.js
+new file mode 100644
+index 0000000..536f931
+--- /dev/null
++++ b/packages/sources/test/pipeline.test.js
+@@ -0,0 +1,284 @@
++import { contentHash } from '@fab5/shared/hash';
++import { describe, expect, it } from 'vitest';
++import {
++  createCursorStore,
++  createMapContext,
++  defineEntity,
++  getEntitySpec,
++  mapPage,
++  quarantineRecord,
++  sampleRedacted
++} from '../index.js';
++import { crmConnection, crmUser, fixturesByEntity, ids } from './fixtures.js';
++import { createFakeCollection, createFixedClock } from './helpers.js';
++
++const connections = getEntitySpec('crm', 'connections');
++const employees = getEntitySpec('crm', 'employees');
++const context = createMapContext({ customers: new Map([[`crm:${ids.cust1}`, 'cus_A']]) });
++const clock = createFixedClock();
++
++const run = (overrides = {}) =>
++  mapPage({
++    spec: connections,
++    source: 'crm',
++    items: [crmConnection],
++    page: 1,
++    ctx: context,
++    clock,
++    runId: 'run-1',
++    ...overrides
++  });
++
++describe('mapPage', () => {
++  it('adds system fields to fact rows', async () => {
++    const result = await run();
++    expect(result.rows).toHaveLength(1);
++    expect(result.rows[0]).toMatchObject({
++      _id: `crm:${ids.conn1}`,
++      _src: 'crm',
++      _runId: 'run-1',
++      _deleted: false,
++      _syncedAt: clock.now()
++    });
++    expect(result.rows[0]._hash).toMatch(/^[a-f0-9]{40}$/);
++    expect(result).toMatchObject({ unchanged: 0, read: 1, quarantined: [] });
++  });
++
++  it('hashes mapped content only, ignoring system fields and key order', async () => {
++    const { rows } = await run();
++    const { _src, _hash, _runId, _syncedAt, _deleted, ...mapped } = rows[0];
++    expect(_hash).toBe(contentHash(mapped));
++    expect(_hash).toBe(contentHash({ ...mapped, _runId: 'other' }));
++    const reordered = Object.fromEntries(Object.entries(mapped).reverse());
++    expect(contentHash(reordered)).toBe(_hash);
++    expect([_src, _runId, _syncedAt, _deleted]).toHaveLength(4);
++  });
++
++  it('skips rows whose hash is already stored', async () => {
++    const first = await run();
++    const known = new Map([[first.rows[0]._id, first.rows[0]._hash]]);
++    const loadHashes = async (target, idsToLoad) => {
++      expect(target).toBe('fact_connections');
++      expect(idsToLoad).toEqual([first.rows[0]._id]);
++      return known;
++    };
++    const second = await run({ loadHashes });
++    expect(second.rows).toEqual([]);
++    expect(second.unchanged).toBe(1);
++  });
++
++  it('re-emits a row whose content changed', async () => {
++    const first = await run();
++    const known = new Map([[first.rows[0]._id, first.rows[0]._hash]]);
++    const changed = { ...crmConnection, status: 'Notice Period' };
++    const second = await run({ items: [changed], loadHashes: async () => known });
++    expect(second.rows).toHaveLength(1);
++    expect(second.rows[0].status).toBe('Notice Period');
++    expect(second.rows[0]._hash).not.toBe(first.rows[0]._hash);
++  });
++
++  it('does not query hashes for an empty or fully quarantined page', async () => {
++    let calls = 0;
++    const loadHashes = async () => {
++      calls += 1;
++      return new Map();
++    };
++    await run({ items: [], loadHashes });
++    await run({ items: [{ _id: ids.conn2 }], loadHashes });
++    expect(calls).toBe(0);
++  });
++
++  it('quarantines rows that fail mapping and keeps the rest', async () => {
++    const broken = { ...crmConnection, _id: ids.conn2, commercials: { mrc: 'abc' } };
++    const result = await run({ items: [broken, crmConnection] });
++    expect(result.rows.map((row) => row._id)).toEqual([`crm:${ids.conn1}`]);
++    expect(result.quarantined).toHaveLength(1);
++    expect(result.quarantined[0]).toMatchObject({
++      source: 'crm',
++      entity: 'connections',
++      page: 1,
++      createdAt: clock.now()
++    });
++    expect(result.quarantined[0].reason).toContain('commercials.mrc');
++  });
++
++  it('quarantines rows that violate the entity contract', async () => {
++    const result = await run({ items: [{ ...crmConnection, status: null }] });
++    expect(result.rows).toEqual([]);
++    expect(result.quarantined[0].reason).toContain('status');
++  });
++
++  it('quarantines a user without a usable email', async () => {
++    const result = await mapPage({
++      spec: employees,
++      source: 'crm',
++      items: [{ ...crmUser, email: 'not-an-email' }],
++      page: 1,
++      ctx: context,
++      clock,
++      runId: 'run-1'
++    });
++    expect(result.rows).toEqual([]);
++    expect(result.quarantined).toHaveLength(1);
++  });
++
++  it('quarantines a mapped row carrying a deny-listed key even if the contract allows it', async () => {
++    const leaky = defineEntity('crm', {
++      entity: 'sales_targets',
++      kind: 'fact',
++      view: 'ai_sales_targets_v',
++      cursor: { time: 'updatedAt', tie: '_id', tieType: 'objectId' },
++      target: 'fact_sales_targets',
++      contract: 'crm.sales_targets',
++      map: () => ({ _id: 'crm:x', refreshToken: 'abc' })
++    });
++    const result = await mapPage({
++      spec: leaky,
++      source: 'crm',
++      items: [fixturesByEntity.crm.sales_targets],
++      page: 2,
++      ctx: context,
++      clock,
++      runId: 'run-1',
++      validate: () => ({ ok: true, reason: null })
++    });
++    expect(result.rows).toEqual([]);
++    expect(result.quarantined[0].reason).toContain('denied key refreshToken');
++  });
++
++  it('quarantines rows whose mapping throws a non-finite number', async () => {
++    const result = await run({
++      items: [{ ...crmConnection, ips: { count: 1, cost: 1 } }],
++      validate: () => {
++        throw new TypeError('non-finite number at $.x');
++      }
++    });
++    expect(result.quarantined[0].reason).toContain('non-finite');
++  });
++
++  it('returns identity rows with a hash and no system fields', async () => {
++    const result = await mapPage({
++      spec: employees,
++      source: 'crm',
++      items: [crmUser],
++      page: 1,
++      ctx: context,
++      clock,
++      runId: 'run-1',
++      loadHashes: async () => {
++        throw new Error('identity entities must not load hashes');
++      }
++    });
++    expect(result.rows).toHaveLength(1);
++    expect(result.rows[0]).toMatchObject({
++      _id: `crm:${ids.user1}`,
++      email: 'asha.rao@example.com'
++    });
++    expect(result.rows[0]._hash).toMatch(/^[a-f0-9]{40}$/);
++    expect(result.rows[0]).not.toHaveProperty('_src');
++    expect(result.rows[0]).not.toHaveProperty('_runId');
++  });
++});
++
++describe('quarantine records', () => {
++  const doc = {
++    _id: ids.conn2,
++    status: 'Active',
++    remarks: 'password: hunter2 and 123412341234',
++    password: 'hunter2',
++    technicalDetails: { aEnd: { address: 'secret' } }
++  };
++
++  it('describes the shape of a row without any of its values', () => {
++    const sample = sampleRedacted(doc);
++    expect(sample).toContain(`_id=${ids.conn2}`);
++    expect(sample).toContain('status:string');
++    expect(sample).not.toContain('hunter2');
++    expect(sample).not.toContain('123412341234');
++    expect(sample).not.toContain('secret');
++    expect(sample).not.toContain('password');
++  });
++
++  it('is idempotent per row so reruns replace rather than pile up', () => {
++    const base = { source: 'crm', spec: connections, doc, page: 1, now: clock.now() };
++    const first = quarantineRecord({ ...base, reason: 'a' });
++    const second = quarantineRecord({ ...base, reason: 'b', page: 4 });
++    expect(first._id).toBe(second._id);
++    expect(
++      quarantineRecord({ ...base, doc: { ...doc, _id: ids.conn1 }, reason: 'a' })._id
++    ).not.toBe(first._id);
++  });
++
++  it('redacts secrets from the reason and bounds its length', () => {
++    const record = quarantineRecord({
++      source: 'crm',
++      spec: connections,
++      doc,
++      page: 1,
++      now: clock.now(),
++      reason: `failed mongodb://ai_ro:pw@host/db password=abc ${'x'.repeat(500)}`
++    });
++    expect(record.reason).not.toContain('ai_ro:pw');
++    expect(record.reason).not.toContain('abc ');
++    expect(record.reason.length).toBeLessThanOrEqual(200);
++  });
++});
++
++describe('cursor store', () => {
++  const make = () => {
++    const collection = createFakeCollection();
++    const time = createFixedClock();
++    return { collection, time, store: createCursorStore({ collection, clock: time }) };
++  };
++
++  it('keys documents by source and entity', () => {
++    expect(make().store.keyOf('crm', 'connections')).toBe('crm:connections');
++  });
++
++  it('starts empty and returns the saved cursor', async () => {
++    const { store } = make();
++    expect(await store.load('crm', 'connections')).toBeNull();
++    await store.save('crm', 'connections', '2026-09-01T10:00:00.000Z|abc');
++    expect(await store.load('crm', 'connections')).toBe('2026-09-01T10:00:00.000Z|abc');
++  });
++
++  it('keeps entities independent', async () => {
++    const { store } = make();
++    await store.save('crm', 'connections', 'a|1');
++    await store.save('crm', 'customers', 'b|2');
++    expect(await store.load('crm', 'connections')).toBe('a|1');
++    expect(await store.load('crm', 'customers')).toBe('b|2');
++  });
++
++  it('records success, clears the error and stamps a full load', async () => {
++    const { store, time } = make();
++    await store.markError('crm', 'connections', 'timeout');
++    await store.markSuccess('crm', 'connections', { cursor: 'c|3', fullLoad: true });
++    const doc = await store.get('crm', 'connections');
++    expect(doc).toMatchObject({
++      cursor: 'c|3',
++      lastError: null,
++      lastSuccessAt: time.now(),
++      lastFullLoadAt: time.now()
++    });
++  });
++
++  it('records a bounded error without touching the cursor', async () => {
++    const { store } = make();
++    await store.save('crm', 'connections', 'a|1');
++    await store.markError('crm', 'connections', 'x'.repeat(400));
++    const doc = await store.get('crm', 'connections');
++    expect(doc.cursor).toBe('a|1');
++    expect(doc.lastError).toHaveLength(200);
++  });
++
++  it('resets the cursor for a full reload and stamps id reconciliation', async () => {
++    const { store, time } = make();
++    await store.save('crm', 'connections', 'a|1');
++    await store.reset('crm', 'connections');
++    await store.markIdReconcile('crm', 'connections');
++    const doc = await store.get('crm', 'connections');
++    expect(doc.cursor).toBeNull();
++    expect(doc.lastIdReconcileAt).toEqual(time.now());
++  });
++});
+diff --git a/packages/sources/test/reader.test.js b/packages/sources/test/reader.test.js
+new file mode 100644
+index 0000000..172ba32
+--- /dev/null
++++ b/packages/sources/test/reader.test.js
+@@ -0,0 +1,324 @@
++import { SourceDisabledError } from '@fab5/source-gate';
++import { describe, expect, it } from 'vitest';
++import { createHarness, sourceDoc } from '../../source-gate/test/helpers.js';
++import {
++  SourceReaderError,
++  createCursorStore,
++  decodeCursor,
++  encodeCursor,
++  getEntitySpec,
++  incrementalFilter,
++  readEntity
++} from '../index.js';
++import {
++  createFixedClock,
++  createFakeCollection,
++  createFakeGate,
++  createFakeView
++} from './helpers.js';
++
++const spec = getEntitySpec('crm', 'connections');
++const codec = { decode: (value) => value, encode: (value) => String(value) };
++
++const row = (n, time) => ({
++  _id: `id-${String(n).padStart(3, '0')}`,
++  updatedAt: new Date(time)
++});
++
++const collect = async (generator) => {
++  const pages = [];
++  for await (const page of generator) pages.push(page);
++  return pages;
++};
++
++describe('compound cursor', () => {
++  it('round-trips time and id', () => {
++    const doc = { _id: 'abc', updatedAt: new Date('2026-09-01T10:00:00.000Z') };
++    const text = encodeCursor(spec, doc, codec);
++    expect(text).toBe('2026-09-01T10:00:00.000Z|abc');
++    expect(decodeCursor(text, spec, codec)).toEqual({ time: doc.updatedAt, id: 'abc' });
++  });
++
++  it('keeps ids that contain the separator', () => {
++    const decoded = decodeCursor('2026-09-01T10:00:00.000Z|a|b', spec, codec);
++    expect(decoded.id).toBe('a|b');
++  });
++
++  it('treats an absent cursor as the start', () => {
++    expect(decodeCursor(null, spec, codec)).toBeNull();
++    expect(decodeCursor(undefined, spec, codec)).toBeNull();
++    expect(decodeCursor('', spec, codec)).toBeNull();
++  });
++
++  it.each(['garbage', '|abc', '2026-09-01T10:00:00.000Z|', 'not-a-date|abc'])(
++    'rejects the malformed cursor %s',
++    (text) => {
++      expect(() => decodeCursor(text, spec, codec)).toThrow(SourceReaderError);
++    }
++  );
++
++  it('refuses to cursor a row without a valid time or id', () => {
++    expect(() => encodeCursor(spec, { _id: 'a', updatedAt: null }, codec)).toThrow(
++      /valid updatedAt/
++    );
++    expect(() =>
++      encodeCursor(spec, { updatedAt: new Date('2026-09-01T00:00:00.000Z') }, codec)
++    ).toThrow(/no _id/);
++  });
++
++  it('builds the strict compound filter after a position', () => {
++    const position = { time: new Date('2026-09-01T10:00:00.000Z'), id: 'abc' };
++    expect(incrementalFilter(spec, { position })).toEqual({
++      $or: [
++        { updatedAt: { $gt: position.time } },
++        { updatedAt: position.time, _id: { $gt: 'abc' } }
++      ]
++    });
++  });
++
++  it('uses an inclusive since filter when there is no position', () => {
++    const since = new Date('2026-08-01T00:00:00.000Z');
++    expect(incrementalFilter(spec, { since })).toEqual({ updatedAt: { $gte: since } });
++    expect(incrementalFilter(spec, {})).toEqual({});
++  });
++
++  it('prefers the position over since', () => {
++    const position = { time: new Date('2026-09-01T00:00:00.000Z'), id: 'x' };
++    const filter = incrementalFilter(spec, {
++      since: new Date('2020-01-01T00:00:00.000Z'),
++      position
++    });
++    expect(filter.$or).toBeDefined();
++  });
++});
++
++describe('readEntity paging', () => {
++  const docs = [
++    row(1, '2026-09-01T10:00:00.000Z'),
++    row(2, '2026-09-01T10:00:00.000Z'),
++    row(3, '2026-09-01T10:00:00.000Z'),
++    row(4, '2026-09-01T10:00:00.000Z'),
++    row(5, '2026-09-01T11:00:00.000Z'),
++    row(6, '2026-09-01T12:00:00.000Z'),
++    row(7, '2026-09-01T12:00:00.000Z')
++  ];
++  const makeGate = (pageSize = 3, source = docs) =>
++    createFakeGate({ views: { ai_connections_v: createFakeView(source) }, pageSize });
++
++  it('pages through every row once, in order', async () => {
++    const gate = makeGate();
++    const pages = await collect(readEntity({ gate, sourceId: 'crm', spec, codec }));
++    expect(pages.map((page) => page.items.length)).toEqual([3, 3, 1]);
++    expect(pages.map((page) => page.hasMore)).toEqual([true, true, false]);
++    expect(pages.flatMap((page) => page.items.map((item) => item._id))).toEqual(
++      docs.map((doc) => doc._id)
++    );
++  });
++
++  it('never skips rows that share a timestamp across a page boundary', async () => {
++    const gate = makeGate(2);
++    const pages = await collect(readEntity({ gate, sourceId: 'crm', spec, codec }));
++    const seen = pages.flatMap((page) => page.items.map((item) => item._id));
++    expect(seen).toHaveLength(docs.length);
++    expect(new Set(seen).size).toBe(docs.length);
++  });
++
++  it('fetches one extra row to detect more pages and applies the limits', async () => {
++    const view = createFakeView(docs);
++    const gate = createFakeGate({
++      views: { ai_connections_v: view },
++      pageSize: 3,
++      maxTimeMs: 1234
++    });
++    await collect(readEntity({ gate, sourceId: 'crm', spec, codec }));
++    expect(view.queries[0]).toMatchObject({ limit: 4, maxTimeMS: 1234 });
++    expect(view.queries[0].sort).toEqual({ updatedAt: 1, _id: 1 });
++  });
++
++  it('reports each page cursor as the last row of that page', async () => {
++    const gate = makeGate();
++    const pages = await collect(readEntity({ gate, sourceId: 'crm', spec, codec }));
++    expect(pages[0].cursor).toBe('2026-09-01T10:00:00.000Z|id-003');
++    expect(pages[2].cursor).toBe('2026-09-01T12:00:00.000Z|id-007');
++  });
++
++  it('honors since', async () => {
++    const gate = makeGate(10);
++    const pages = await collect(
++      readEntity({
++        gate,
++        sourceId: 'crm',
++        spec,
++        codec,
++        since: new Date('2026-09-01T11:00:00.000Z')
++      })
++    );
++    expect(pages.flatMap((page) => page.items.map((item) => item._id))).toEqual([
++      'id-005',
++      'id-006',
++      'id-007'
++    ]);
++  });
++
++  it('returns a single empty page with the incoming cursor when nothing changed', async () => {
++    const gate = makeGate();
++    const cursor = '2026-09-01T12:00:00.000Z|id-007';
++    const pages = await collect(readEntity({ gate, sourceId: 'crm', spec, codec, cursor }));
++    expect(pages).toHaveLength(1);
++    expect(pages[0]).toMatchObject({ items: [], hasMore: false, cursor });
++  });
++
++  it('tags every read with the entity and caller', async () => {
++    const gate = makeGate();
++    await collect(
++      readEntity({ gate, sourceId: 'crm', spec, codec, triggeredBy: 'manual', runId: 'run-1' })
++    );
++    expect(gate.calls[0]).toMatchObject({
++      sourceId: 'crm',
++      ctx: { entity: 'connections', triggeredBy: 'manual', runId: 'run-1' }
++    });
++  });
++
++  it('picks up a row updated after the cursor was saved', async () => {
++    const live = docs.map((doc) => ({ ...doc }));
++    const gate = makeGate(10, live);
++    const first = await collect(readEntity({ gate, sourceId: 'crm', spec, codec }));
++    const cursor = first.at(-1).cursor;
++    live[1].updatedAt = new Date('2026-09-02T00:00:00.000Z');
++    const second = await collect(readEntity({ gate, sourceId: 'crm', spec, codec, cursor }));
++    expect(second.flatMap((page) => page.items.map((item) => item._id))).toEqual(['id-002']);
++  });
++});
++
++describe('resuming after a kill', () => {
++  const docs = Array.from({ length: 11 }, (_, i) =>
++    row(i + 1, i < 6 ? '2026-09-01T10:00:00.000Z' : '2026-09-01T10:30:00.000Z')
++  );
++
++  it('continues exactly where the saved cursor stopped', async () => {
++    const gate = createFakeGate({ views: { ai_connections_v: createFakeView(docs) }, pageSize: 4 });
++    const store = createCursorStore({
++      collection: createFakeCollection(),
++      clock: createFixedClock()
++    });
++    const processed = [];
++
++    for await (const page of readEntity({
++      gate,
++      sourceId: 'crm',
++      spec,
++      codec,
++      cursor: await store.load('crm', 'connections')
++    })) {
++      processed.push(...page.items.map((item) => item._id));
++      await store.save('crm', 'connections', page.cursor);
++      if (page.page === 2) break;
++    }
++    expect(processed).toHaveLength(8);
++    expect(await store.load('crm', 'connections')).toBe('2026-09-01T10:30:00.000Z|id-008');
++
++    for await (const page of readEntity({
++      gate,
++      sourceId: 'crm',
++      spec,
++      codec,
++      cursor: await store.load('crm', 'connections')
++    })) {
++      processed.push(...page.items.map((item) => item._id));
++      await store.save('crm', 'connections', page.cursor);
++    }
++    expect(processed).toEqual(docs.map((doc) => doc._id));
++  });
++
++  it('loses nothing when the kill happens between reading a page and saving it', async () => {
++    const gate = createFakeGate({ views: { ai_connections_v: createFakeView(docs) }, pageSize: 4 });
++    const store = createCursorStore({
++      collection: createFakeCollection(),
++      clock: createFixedClock()
++    });
++    const processed = new Set();
++
++    const iterator = readEntity({ gate, sourceId: 'crm', spec, codec });
++    const first = await iterator.next();
++    first.value.items.forEach((item) => processed.add(item._id));
++    await store.save('crm', 'connections', first.value.cursor);
++    const second = await iterator.next();
++    second.value.items.forEach((item) => processed.add(item._id));
++
++    for await (const page of readEntity({
++      gate,
++      sourceId: 'crm',
++      spec,
++      codec,
++      cursor: await store.load('crm', 'connections')
++    })) {
++      page.items.forEach((item) => processed.add(item._id));
++    }
++    expect(processed.size).toBe(docs.length);
++  });
++});
++
++describe('reads go through the Source Gate', () => {
++  const docs = Array.from({ length: 5 }, (_, i) => row(i + 1, '2026-09-01T10:00:00.000Z'));
++  const harness = () => {
++    const h = createHarness({
++      sources: [sourceDoc({ limits: { pageSize: 2, maxTimeMs: 30000, rowsPerMin: 100000 } })]
++    });
++    const client = {
++      db: () => ({ collection: () => createFakeView(docs) })
++    };
++    h.engine.connect = async () => client;
++    return h;
++  };
++
++  it('logs each page as a read against the entity', async () => {
++    const h = harness();
++    const pages = await collect(readEntity({ gate: h.gate, sourceId: 'crm', spec, codec }));
++    expect(pages.map((page) => page.items.length)).toEqual([2, 2, 1]);
++    const reads = h.accessRows.filter((entry) => entry.action === 'read_page');
++    expect(reads).toHaveLength(3);
++    expect(reads.map((entry) => entry.entity)).toEqual([
++      'connections',
++      'connections',
++      'connections'
++    ]);
++    expect(reads.map((entry) => entry.rows)).toEqual([2, 2, 1]);
++  });
++
++  it('stops reading and records blocked attempts once the source leaves active', async () => {
++    const h = harness();
++    const iterator = readEntity({ gate: h.gate, sourceId: 'crm', spec, codec });
++    const first = await iterator.next();
++    expect(first.value.items).toHaveLength(2);
++
++    await h.store.update('crm', { state: 'disabled' });
++    h.clock.advance(6000);
++
++    await expect(iterator.next()).rejects.toBeInstanceOf(SourceDisabledError);
++    expect(h.accessRows.filter((entry) => entry.action === 'read_page')).toHaveLength(1);
++    expect(h.accessRows.some((entry) => entry.action === 'blocked')).toBe(true);
++  });
++
++  it('resumes from the saved cursor after the source is re-enabled', async () => {
++    const h = harness();
++    const store = createCursorStore({ collection: createFakeCollection(), clock: h.clock });
++    const seen = [];
++
++    const iterator = readEntity({ gate: h.gate, sourceId: 'crm', spec, codec });
++    const first = await iterator.next();
++    seen.push(...first.value.items.map((item) => item._id));
++    await store.save('crm', 'connections', first.value.cursor);
++
++    await h.store.update('crm', { state: 'paused' });
++    h.clock.advance(6000);
++    await expect(iterator.next()).rejects.toBeInstanceOf(SourceDisabledError);
++
++    await h.store.update('crm', { state: 'active' });
++    h.clock.advance(6000);
++    const cursor = await store.load('crm', 'connections');
++    for await (const page of readEntity({ gate: h.gate, sourceId: 'crm', spec, codec, cursor })) {
++      seen.push(...page.items.map((item) => item._id));
++    }
++    expect(seen).toEqual(docs.map((doc) => doc._id));
++  });
++});
+diff --git a/scripts/history-check.js b/scripts/history-check.js
+new file mode 100644
+index 0000000..fff5453
+--- /dev/null
++++ b/scripts/history-check.js
+@@ -0,0 +1,21 @@
++import { createRealClock } from '@fab5/shared/clock';
++import { createRuntime, loadSnapshotDb } from '@fab5/source-gate';
++import { checkHistoryBump } from '@fab5/sources';
++
++const sourceId = process.argv[2] ?? 'crm';
++const handle = await loadSnapshotDb();
++try {
++  const runtime = createRuntime({
++    db: handle.db,
++    clock: createRealClock(),
++    processName: 'history-check'
++  });
++  const result = await checkHistoryBump({ gate: runtime.gate, sourceId });
++  console.log(JSON.stringify(result, null, 2));
++  process.exitCode = result.conclusion === 'suspect' ? 2 : 0;
++} catch (error) {
++  console.error(error.code ? `${error.code}: ${error.message}` : error.message);
++  process.exitCode = 1;
++} finally {
++  await handle.close();
++}
+diff --git a/scripts/legacy-export.js b/scripts/legacy-export.js
+new file mode 100644
+index 0000000..d0096ca
+--- /dev/null
++++ b/scripts/legacy-export.js
+@@ -0,0 +1,64 @@
++import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
++import { basename, dirname } from 'node:path';
++import { parseArgs } from 'node:util';
++import { createRealClock } from '@fab5/shared/clock';
++import { LEGACY_SOURCE, readLegacyExport } from '@fab5/sources';
++
++const { values } = parseArgs({
++  options: {
++    file: { type: 'string' },
++    out: { type: 'string', default: 'ops/live/legacy_collections.export.json' },
++    'array-name': { type: 'string', default: 'RAW_HISTORICAL_GROWTH' },
++    'map-name': { type: 'string', default: 'LEGACY_KEY_TO_EMAIL' },
++    'month-field': { type: 'string' },
++    'key-field': { type: 'string' },
++    'amount-field': { type: 'string' },
++    unit: { type: 'string', default: 'rupees' }
++  }
++});
++
++if (!values.file) {
++  console.error(
++    'usage: npm run legacy:export -- --file <bahikhata source file> [--out path] [--month-field f] [--key-field f --amount-field f] [--unit rupees|paise]'
++  );
++  process.exit(1);
++}
++
++try {
++  const result = readLegacyExport({
++    text: readFileSync(values.file, 'utf8'),
++    arrayName: values['array-name'],
++    mapName: values['map-name'],
++    monthField: values['month-field'] ?? null,
++    keyField: values['key-field'] ?? null,
++    amountField: values['amount-field'] ?? null,
++    unit: values.unit
++  });
++  const payload = {
++    source: LEGACY_SOURCE,
++    generatedAt: createRealClock().now().toISOString(),
++    sourceFile: basename(values.file),
++    monthField: result.monthField,
++    counts: result.counts,
++    totals: result.totals,
++    unmapped: result.unmapped,
++    rows: result.rows
++  };
++  mkdirSync(dirname(values.out), { recursive: true });
++  writeFileSync(values.out, `${JSON.stringify(payload, null, 2)}\n`);
++  console.log(
++    JSON.stringify(
++      {
++        out: values.out,
++        counts: result.counts,
++        totals: result.totals,
++        unmapped: Object.keys(result.unmapped)
++      },
++      null,
++      2
++    )
++  );
++} catch (error) {
++  console.error(error.code ? `${error.code}: ${error.message}` : error.message);
++  process.exitCode = 1;
++}

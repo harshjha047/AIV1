@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.js", "./*": "./src/*.js", "./pii": "./src/pii/index.js" },
-  "dependencies": { "luxon": "^3.5.0" }
+  "exports": {
+    ".": "./src/index.js",
+    "./contracts": "./contracts/index.js",
+    "./pii": "./src/pii/index.js",
+    "./*": "./src/*.js"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "luxon": "^3.5.0"
+  }
 }

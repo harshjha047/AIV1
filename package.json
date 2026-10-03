@@ -19,7 +19,9 @@
     "bench:models": "node scripts/bench-models.js",
     "source:add": "node scripts/source-add.js",
     "lint": "eslint .",
-    "ci": "npm run lint && npm test"
+    "ci": "npm run lint && npm test",
+    "legacy:export": "node scripts/legacy-export.js",
+    "history:check": "node scripts/history-check.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

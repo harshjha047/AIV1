@@ -3,6 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./index.js" },
-  "dependencies": { "@fab5/shared": "*", "@fab5/source-gate": "*" }
+  "exports": {
+    ".": "./index.js",
+    "./*": "./*.js"
+  },
+  "dependencies": {
+    "@fab5/shared": "*",
+    "@fab5/source-gate": "*",
+    "luxon": "^3.5.0"
+  }
 }
